@@ -29,6 +29,7 @@ class ALUComponent(VGroup):
         height: float = 3.0,
         body_color: str = "#4A90D9",
         label: str = "ALU",
+        port_offset: float = 0.15,
         **kwargs,
     ):
         super().__init__(**kwargs)
@@ -36,6 +37,7 @@ class ALUComponent(VGroup):
         self._h = height
         self._color = body_color
         self._label_str = label
+        self._offset = port_offset
 
         self.shape    = self._build_shape()
         self.lbl      = self._build_label()
@@ -83,21 +85,23 @@ class ALUComponent(VGroup):
 
     def get_input_a(self) -> np.ndarray:
         v = self._verts()
-        return (v[0] + v[5]) / 2
+        pt = (v[0] + v[5]) / 2
+        return pt + LEFT * self._offset
 
     def get_input_b(self) -> np.ndarray:
         v = self._verts()
-        return (v[5] + v[4]) / 2
+        pt = (v[5] + v[4]) / 2
+        return pt + LEFT * self._offset
 
     def get_output(self) -> np.ndarray:
-        return self._verts()[2]
+        return self._verts()[2] + RIGHT * self._offset
 
     def get_zero_port(self) -> np.ndarray:
         v = self._verts()
-        return (v[1] + v[2]) / 2
+        return (v[1] + v[2]) / 2 + UP * self._offset + RIGHT * self._offset
 
     def get_ctrl_port(self) -> np.ndarray:
-        return self.shape.get_bottom()
+        return self.shape.get_bottom() + DOWN * self._offset
 
     def set_operation(self, op: str) -> "ALUComponent":
         expr = self.OPS.get(op.upper(), op)
@@ -119,47 +123,3 @@ class ALUComponent(VGroup):
             FadeIn(self.op_label, shift=UP * 0.1),
             run_time=run_time,
         )
-
-class TestALUScene(Scene):
-    def construct(self):
-        alu = ALUComponent().scale(1.4)
-        self.play(Create(alu), run_time=0.8)
-        self.wait(0.3)
-
-        arrow_kw = dict(buff=0, stroke_width=2.5)
-        lbl_kw   = dict(font_size=15)
-
-        a_end   = alu.get_input_a()
-        a_arrow = Arrow(a_end + LEFT * 1.2, a_end, color=GRAY, **arrow_kw)
-        a_lbl   = Text("Read data 1", **lbl_kw).next_to(a_arrow, LEFT, buff=0.1)
-
-        b_end   = alu.get_input_b()
-        b_arrow = Arrow(b_end + LEFT * 1.2, b_end, color=GRAY, **arrow_kw)
-        b_lbl   = Text("Mux output", **lbl_kw).next_to(b_arrow, LEFT, buff=0.1)
-
-        o_start = alu.get_output()
-        o_arrow = Arrow(o_start, o_start + RIGHT * 1.2, color=GRAY, **arrow_kw)
-        o_lbl   = Text("ALU result", **lbl_kw).next_to(o_arrow, RIGHT, buff=0.1)
-
-        z_pt    = alu.get_zero_port()
-        z_arrow = Arrow(z_pt, z_pt + RIGHT * 0.6 + UP * 0.5, color=BLUE, **arrow_kw)
-        z_lbl   = Text("Zero", font_size=15, color=BLUE).next_to(z_arrow.get_end(), RIGHT, buff=0.05)
-
-        c_pt    = alu.get_ctrl_port()
-        c_arrow = Arrow(c_pt + DOWN * 0.9, c_pt, color=BLUE, **arrow_kw)
-        c_lbl   = Text("ALU control", font_size=15, color=BLUE).next_to(c_arrow, DOWN, buff=0.05)
-
-        self.play(
-            GrowArrow(a_arrow), Write(a_lbl),
-            GrowArrow(b_arrow), Write(b_lbl),
-            GrowArrow(o_arrow), Write(o_lbl),
-            GrowArrow(z_arrow), Write(z_lbl),
-            GrowArrow(c_arrow), Write(c_lbl),
-        )
-        self.wait(1)
-
-        for op in ["ADD", "SUB", "AND", "SLT", "SRL"]:
-            alu.animate_operation(self, op, run_time=0.5)
-            self.wait(0.8)
-
-        self.wait(1)
