@@ -52,7 +52,7 @@ class SignExtendComponent(VGroup):
         lbl.move_to(self.shape.get_center())
         self.add(lbl)
 
-        in_lbl = Text("16", font_size=10, color=self._color)
+        in_lbl = Text("12", font_size=10, color=self._color)
         in_lbl.move_to(self.shape.get_left() + UP * 0.35 + RIGHT * 0.2)
         self.add(in_lbl)
 
