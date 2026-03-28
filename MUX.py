@@ -40,8 +40,12 @@ class MuxComponent(VGroup):
         return rect
 
     def _build_labels(self):
+        mid_y_0 = (self.shape.get_top()[1] + self.shape.get_center()[1]) / 2
+        mid_y_1 = (self.shape.get_bottom()[1] + self.shape.get_center()[1]) / 2
+        cx = self.shape.get_center()[0]
+
         self.lbl_0 = Text("0", font_size=14, weight=BOLD, color=self._body_color)
-        self.lbl_0.move_to(self.shape.get_top() + DOWN * 0.22)
+        self.lbl_0.move_to(np.array([cx, mid_y_0, 0]))
 
         # Vertical M-U-X label
         self.lbl_mux = Text(
@@ -52,7 +56,7 @@ class MuxComponent(VGroup):
         self.lbl_mux.move_to(self.shape.get_center())
 
         self.lbl_1 = Text("1", font_size=14, weight=BOLD, color=self._body_color)
-        self.lbl_1.move_to(self.shape.get_bottom() + UP * 0.22)
+        self.lbl_1.move_to(np.array([cx, mid_y_1, 0]))
 
         self.add(self.lbl_0, self.lbl_mux, self.lbl_1)
 
