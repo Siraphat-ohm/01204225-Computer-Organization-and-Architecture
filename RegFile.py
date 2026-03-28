@@ -14,7 +14,7 @@ class RegFileComponent(VGroup):
         body_color: str = "#DDDDDD",
         ctrl_color: str = "#4A90D9",
         label: str = "Registers",
-        input_offset: float = 0.15,
+        port_offset: float = 0.15,
         **kwargs,
     ):
         super().__init__(**kwargs)
@@ -23,7 +23,7 @@ class RegFileComponent(VGroup):
         self._body_color = body_color
         self._ctrl_color = ctrl_color
         self._label_str = label
-        self._offset = input_offset
+        self._offset = port_offset
 
         self.shape = self._build_shape()
         self._build_inner_labels()
@@ -83,7 +83,7 @@ class RegFileComponent(VGroup):
         self.add(main_lbl)
 
     def _port_y(self, name: str) -> float:
-        h = self._h
+        h = self.shape.get_height()
         positions = {
             "rr1": h * 0.34,
             "rr2": h * 0.11,
@@ -95,22 +95,22 @@ class RegFileComponent(VGroup):
         return positions[name]
 
     def get_read_reg1(self) -> np.ndarray:
-        return np.array([-self._w / 2 - self._offset, self._port_y("rr1"), 0]) + self.get_center()
+        return np.array([self.shape.get_left()[0] - self._offset, self.get_center()[1] + self._port_y("rr1"), 0])
 
     def get_read_reg2(self) -> np.ndarray:
-        return np.array([-self._w / 2 - self._offset, self._port_y("rr2"), 0]) + self.get_center()
+        return np.array([self.shape.get_left()[0] - self._offset, self.get_center()[1] + self._port_y("rr2"), 0])
 
     def get_write_reg(self) -> np.ndarray:
-        return np.array([-self._w / 2 - self._offset, self._port_y("wr"), 0]) + self.get_center()
+        return np.array([self.shape.get_left()[0] - self._offset, self.get_center()[1] + self._port_y("wr"), 0])
 
     def get_write_data(self) -> np.ndarray:
-        return np.array([-self._w / 2 - self._offset, self._port_y("wd"), 0]) + self.get_center()
+        return np.array([self.shape.get_left()[0] - self._offset, self.get_center()[1] + self._port_y("wd"), 0])
 
     def get_read_data1(self) -> np.ndarray:
-        return np.array([self._w / 2 + self._offset, self._port_y("rd1"), 0]) + self.get_center()
+        return np.array([self.shape.get_right()[0] + self._offset, self.get_center()[1] + self._port_y("rd1"), 0])
 
     def get_read_data2(self) -> np.ndarray:
-        return np.array([self._w / 2 + self._offset, self._port_y("rd2"), 0]) + self.get_center()
+        return np.array([self.shape.get_right()[0] + self._offset, self.get_center()[1] + self._port_y("rd2"), 0])
 
     def get_reg_write(self) -> np.ndarray:
-        return np.array([0, self._h / 2 + self._offset, 0]) + self.get_center()
+        return np.array([self.get_center()[0], self.shape.get_top()[1] + self._offset, 0])
