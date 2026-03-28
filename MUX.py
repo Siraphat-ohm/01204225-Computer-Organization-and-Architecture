@@ -8,12 +8,12 @@ class MuxComponent(VGroup):
 
     def __init__(
         self,
-        width: float = 0.9,
-        height: float = 2.8,
+        width: float = 0.6,
+        height: float = 1.5,
         body_color: str = "#555555",
         ctrl_color: str = "#4A90D9",
-        label: str = "Mux",
-        input_offset: float = 0.15,
+        label: str = "MUX",
+        port_offset: float = 0.15,
         **kwargs,
     ):
         super().__init__(**kwargs)
@@ -22,7 +22,7 @@ class MuxComponent(VGroup):
         self._body_color = body_color
         self._ctrl_color = ctrl_color
         self._label_str  = label
-        self._offset = input_offset
+        self._offset = port_offset
         self.shape = self._build_shape()
         self._build_labels()
 
@@ -40,38 +40,41 @@ class MuxComponent(VGroup):
         return rect
 
     def _build_labels(self):
-        self.lbl_0 = Text("0", font_size=18, weight=BOLD, color=self._body_color)
-        self.lbl_0.move_to(self.shape.get_top() + DOWN * 0.32)
+        self.lbl_0 = Text("0", font_size=14, weight=BOLD, color=self._body_color)
+        self.lbl_0.move_to(self.shape.get_top() + DOWN * 0.22)
 
-        self.lbl_mux = Text(self._label_str, font_size=18, weight=BOLD, color=self._body_color)
+        # Vertical M-U-X label
+        self.lbl_mux = Text(
+            "\n".join(self._label_str),
+            font_size=12, weight=BOLD, color=self._body_color,
+            line_spacing=0.6,
+        )
         self.lbl_mux.move_to(self.shape.get_center())
 
-        self.lbl_1 = Text("1", font_size=18, weight=BOLD, color=self._body_color)
-        self.lbl_1.move_to(self.shape.get_bottom() + UP * 0.32)
+        self.lbl_1 = Text("1", font_size=14, weight=BOLD, color=self._body_color)
+        self.lbl_1.move_to(self.shape.get_bottom() + UP * 0.22)
 
         self.add(self.lbl_0, self.lbl_mux, self.lbl_1)
 
     def get_input_0(self) -> np.ndarray:
-        top = self.shape.get_top()
-        ctr = self.shape.get_center()
-        mid = (top + ctr) / 2
-        return mid + LEFT * (self._w / 2 + self._offset)
+        mid_y = (self.shape.get_top()[1] + self.shape.get_center()[1]) / 2
+        x = self.shape.get_left()[0] - self._offset
+        return np.array([x, mid_y, 0])
 
     def get_input_1(self) -> np.ndarray:
-        bot = self.shape.get_bottom()
-        ctr = self.shape.get_center()
-        mid = (bot + ctr) / 2
-        return mid + LEFT * (self._w / 2 + self._offset)
+        mid_y = (self.shape.get_bottom()[1] + self.shape.get_center()[1]) / 2
+        x = self.shape.get_left()[0] - self._offset
+        return np.array([x, mid_y, 0])
 
     def get_output(self) -> np.ndarray:
-        return self.shape.get_right()
+        return self.shape.get_right() + RIGHT * self._offset
 
     def get_ctrl_port(self) -> np.ndarray:
-        return self.shape.get_bottom()
+        return self.shape.get_bottom() + DOWN * self._offset
 
 class TestMuxScene(Scene):
     def construct(self):
-        mux = MuxComponent(input_offset=0.2).scale(1.4)
+        mux = MuxComponent(port_offset=0.2).scale(1.4)
         self.play(Create(mux), run_time=0.7)
         self.wait(0.3)
 
