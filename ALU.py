@@ -27,7 +27,7 @@ class ALUComponent(VGroup):
         self,
         width: float = 2.2,
         height: float = 3.0,
-        body_color: str = "#4A90D9",
+        body_color: str = "#555555",
         label: str = "ALU",
         port_offset: float = 0.15,
         **kwargs,
