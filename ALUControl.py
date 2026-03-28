@@ -5,7 +5,7 @@ import numpy as np
 class ALUControlComponent(VGroup):
     """
     ALU Control unit for the RISC-V single-cycle datapath.
-    Small rounded box that decodes ALUOp + funct fields
+    Small rounded box that decodes ALUOp + funct3/funct7 fields
     into the 4-bit ALU control signal.
     Matches the Patterson & Hennessy schematic style.
     """
@@ -51,9 +51,9 @@ class ALUControlComponent(VGroup):
         self.add(lbl)
 
     def get_funct_input(self) -> np.ndarray:
-        """Top-left — funct field from instruction (routed from below)."""
+        """Bottom-left — funct3/funct7 fields from instruction (wire arrives from below)."""
         x = self.get_center()[0] - self.shape.get_width() / 4
-        y = self.shape.get_top()[1] + self._offset
+        y = self.shape.get_bottom()[1] - self._offset
         return np.array([x, y, 0])
 
     def get_aluop_input(self) -> np.ndarray:
