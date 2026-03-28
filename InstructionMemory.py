@@ -2,11 +2,11 @@ from manim import *
 import numpy as np
 
 DEFAULT_PORT_Y: dict[str, float] = {
-    "31_26":  0.38,   # Control
-    "25_21":  0.20,   # Read register 1
-    "20_16":  0.02,   # Read register 2 / MUX
-    "15_11": -0.18,   # MUX (write register)
-    "15_0":  -0.36,   # Sign-extend
+    "6_0":   0.38,   # Control (opcode)
+    "19_15": 0.20,   # Read register 1 (rs1)
+    "24_20": 0.02,   # Read register 2 (rs2) / MUX
+    "11_7": -0.18,   # MUX (write register rd)
+    "31_20": -0.36,  # Sign-extend (I-type immediate)
 }
 
 
@@ -55,8 +55,8 @@ class InstructionMemoryComponent(VGroup):
 
     def _build_port_labels(self):
         x_r = self._w / 2 - 0.12
-        for key, name in [("31_26","[31–26]"),("25_21","[25–21]"),
-                           ("20_16","[20–16]"),("15_11","[15–11]"),("15_0","[15–0]")]:
+        for key, name in [("6_0","[6–0]"),("19_15","[19–15]"),
+                           ("24_20","[24–20]"),("11_7","[11–7]"),("31_20","[31–20]")]:
             y = self._port_y[key] * self._h
             lbl = Text(name, font_size=10, color=self._color)
             lbl.move_to([x_r, y, 0]).align_to([x_r, 0, 0], RIGHT)
@@ -88,17 +88,22 @@ class InstructionMemoryComponent(VGroup):
         y = self.get_center()[1] - 0.10 * self.shape.get_height()
         return np.array([x, y, 0])
 
-    def get_inst_31_26(self) -> np.ndarray:
-        return self._right_port("31_26")
+    def get_inst_6_0(self) -> np.ndarray:
+        """Opcode [6:0] → Control unit."""
+        return self._right_port("6_0")
 
-    def get_inst_25_21(self) -> np.ndarray:
-        return self._right_port("25_21")
+    def get_inst_19_15(self) -> np.ndarray:
+        """rs1 [19:15] → Read register 1."""
+        return self._right_port("19_15")
 
-    def get_inst_20_16(self) -> np.ndarray:
-        return self._right_port("20_16")
+    def get_inst_24_20(self) -> np.ndarray:
+        """rs2 [24:20] → Read register 2 / MUX."""
+        return self._right_port("24_20")
 
-    def get_inst_15_11(self) -> np.ndarray:
-        return self._right_port("15_11")
+    def get_inst_11_7(self) -> np.ndarray:
+        """rd [11:7] → Write register MUX."""
+        return self._right_port("11_7")
 
-    def get_inst_15_0(self) -> np.ndarray:
-        return self._right_port("15_0")
+    def get_inst_31_20(self) -> np.ndarray:
+        """I-type immediate [31:20] → Sign-extend."""
+        return self._right_port("31_20")
