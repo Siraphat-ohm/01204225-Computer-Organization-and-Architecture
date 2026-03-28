@@ -4,33 +4,38 @@ import sys, os
 sys.path.insert(0, os.path.dirname(__file__))
 
 from InstructionMemory import InstructionMemoryComponent
+from PC                import PCComponent
 from MUX               import MuxComponent
 from RegFile           import RegFileComponent
 from SignExtend        import SignExtendComponent
 from ALU               import ALUComponent
 from ALUControl        import ALUControlComponent
+from DataMemory        import DataMemoryComponent
 from utils             import (
     make_bus_split, animate_bus,
     make_ortho_wire, make_straight_wire, make_junction,
     make_connection, draw_connections, animate_data_path, make_v_h_v_wire,
+    make_feedback_wire,
     SIGNAL_COLOR, CTRL_COLOR,
 )
 
 # Wider frame for full single-cycle datapath
-config.frame_width  = 20
-config.frame_height = 11
 
+# config frame 16:9
+config.frame_width  = 30
+config.frame_height = 16.875
 
 class DatapathTest(Scene):
     def construct(self):
+
+        pc  = PCComponent(
+                  width=1.0, height=2.0,
+              ).move_to(LEFT * 8.0)
 
         im  = InstructionMemoryComponent(
                   width=2.6, height=3.8,
                   show_port_labels=False,
               ).move_to(LEFT * 4.8)
-
-        mux = MuxComponent(
-              ).move_to(LEFT * 0.9 + DOWN * 0.63)
 
         rf  = RegFileComponent(width=3.0, height=4.2
               ).move_to(RIGHT * 2.8)
@@ -49,19 +54,26 @@ class DatapathTest(Scene):
         alu_control = ALUControlComponent(
               ).move_to(RIGHT * 7.0 + DOWN * 3.5)
 
-        self.play(FadeIn(im), FadeIn(mux), FadeIn(rf), FadeIn(se),
-                  FadeIn(alu_mux), FadeIn(alu), FadeIn(alu_control),
-                  run_time=0.9)
-        self.wait(0.3)
+        dm = DataMemoryComponent(width=2.6, height=3.8).move_to(RIGHT * 12.0)
+        dm.shift(UP * (alu.get_output()[1] - dm.get_address()[1]))
+
+        # WB MUX: input_1 aligned with DM read data, input_0 will receive ALU result
+        wb_mux = MuxComponent().move_to(RIGHT * 15.2)
+        wb_mux.shift(UP * (dm.get_read_data()[1] - wb_mux.get_input_1()[1]))
+
+        # Shift all components to align to left of frame
+        everything = VGroup(pc, im, rf, se, alu_mux, alu, alu_control, dm, wb_mux)
+        everything.to_edge(LEFT, buff=0.3)
+
+        self.add(pc, im, rf, se, alu_mux, alu, alu_control, dm, wb_mux)
+
+        pc_in  = pc.get_input()
+        pc_out = pc.get_output()
+        im_ra  = im.get_read_address()
 
         rr1  = rf.get_read_reg1()
         rr2  = rf.get_read_reg2()
         wr   = rf.get_write_reg()
-
-        m0   = mux.get_input_0()
-        m1   = mux.get_input_1()
-        mout = mux.get_output()
-        msel = mux.get_ctrl_port()
 
         se_in  = se.get_input()
         se_out = se.get_output()
@@ -83,12 +95,24 @@ class DatapathTest(Scene):
         ac_aluop = alu_control.get_aluop_input()
         ac_out   = alu_control.get_alu_ctrl_output()
 
+        dm_addr  = dm.get_address()
+        dm_wd    = dm.get_write_data()
+        dm_rd    = dm.get_read_data()
+        dm_mr    = dm.get_mem_read()
+        dm_mw    = dm.get_mem_write()
+
+        # Junction just left of DM — ALU result splits here to DM addr and WB MUX bypass
+        alu_junc = np.array([dm.shape.get_left()[0] - 0.5, alu_out[1], 0])
+
+        wb_in0   = wb_mux.get_input_0()
+        wb_in1   = wb_mux.get_input_1()
+        wb_out   = wb_mux.get_output()
+        wb_sel   = wb_mux.get_ctrl_port()
+
         origin  = im.inst_bus_origin()
         trunk_x = origin[0] + 0.5
 
         # ── 3. main instruction bus (5 branches) ──────────────────────────
-        mux_tap_x = m0[0] - 0.4
-
         bus = make_bus_split(
             origin  = origin,
             trunk_x = trunk_x,
@@ -97,53 +121,61 @@ class DatapathTest(Scene):
                     "y":          rr1[1] + 0.5,
                     "dest":       np.array([trunk_x + 1.6,
                                             rr1[1] + 0.5, 0]),
-                    "label":      "Inst[31–26]",
+                    "label":      "Inst[6–0]",
                     "label_side": UP,
                     "dot":        False,
                 },
                 {
                     "y":          rr1[1],
                     "dest":       rr1,
-                    "label":      "Inst[25–21]",
+                    "label":      "Inst[19–15]",
                     "label_side": UP,
                 },
                 {
                     "y":          rr2[1],
                     "dest":       rr2,
-                    "bend_x":     mux_tap_x,
-                    "label":      "Inst[20–16]",
+                    "label":      "Inst[24–20]",
                     "label_side": UP,
-                    "dot":        True,
                 },
                 {
-                    "y":          m1[1],
-                    "dest":       m1,
-                    "bend_x":     mux_tap_x,
-                    "label":      "Inst[15–11]",
+                    "y":          wr[1],
+                    "dest":       wr,
+                    "label":      "Inst[11–7]",
                     "label_side": UP,
                 },
                 {
                     "y":          se_in[1],
                     "dest":       se_in,
-                    "label":      "Inst[15–0]",
+                    "label":      "Inst[31–20]",
                     "label_side": UP,
                 },
             ],
         )
 
-        # ── 4. Inst[5-0] junction (tap from [15-0] wire) ────────────────
+        # ── 4. funct3/funct7 junction (tap from Inst[31-20] wire) ───────
         funct_junc = np.array([se_in[0] - 0.3, se_in[1], 0])
-        dot_funct  = make_junction(funct_junc, color=CTRL_COLOR)
+        dot_funct  = make_junction(funct_junc, color=SIGNAL_COLOR)
         # Horizontal corridor below Sign-extend for Inst[5-0] routing
         funct_corridor_y = se_in[1] - 1.2
+        funct_label = Text("Inst[14–12]\nInst[31–25]", font_size=10, color=WHITE, line_spacing=0.8)
+        funct_label.move_to(np.array([
+            (funct_junc[0] + ac_funct[0]) / 2,
+            funct_corridor_y + 0.18,
+            0,
+        ]))
 
         # ── 5. extra wires via make_connection ────────────────────────────
         wires = {
-            "to_m0": make_connection(
-                np.array([mux_tap_x, rr2[1], 0]), m0,
-                bend_x=m0[0] - 0.3,
+            # PC output -> Instruction memory read address
+            "pc_im": make_connection(
+                pc_out, im_ra, label="PC",
             ),
-            "mux_wr": make_connection(mout, wr, bend_ratio=0.5),
+            # Next PC input stub
+            "pc_in": make_connection(
+                pc_in + LEFT * 0.8, pc_in,
+                arrow=False, label="Next PC",
+                wire_func=make_straight_wire,
+            ),
             # Read data 2 → ALU MUX input 0
             "rd2_am0": make_connection(rd2, am0, label="Read data 2"),
             # Sign-extend output → ALU MUX input 1
@@ -151,7 +183,7 @@ class DatapathTest(Scene):
             # ALUSrc control → ALU MUX select
             "alusrc": make_connection(
                 amsel + DOWN * 0.5, amsel,
-                arrow=False, ctrl=True, label="ALUSrc",
+                arrow=False, ctrl=True, label="ALUSrc", label_color=CTRL_COLOR, label_side=DOWN,
                 wire_func=make_straight_wire,
             ),
             # Read data 1 → ALU input A
@@ -161,7 +193,6 @@ class DatapathTest(Scene):
             # Inst[5-0] junction → down below Sign-extend → right → up to ALU Control top
             "funct_ac": make_connection(
                 funct_junc, ac_funct,
-                ctrl=True, label="Inst[5–0]",
                 tip_dir=DOWN,
                 wire_func=make_v_h_v_wire,
                 bend_y=funct_corridor_y,
@@ -169,72 +200,79 @@ class DatapathTest(Scene):
             # ALUOp → ALU Control (from top, Control Unit stub)
             "aluop_ac": make_connection(
                 ac_aluop + UP * 0.6, ac_aluop,
-                arrow=True, ctrl=True, label="ALUOp",
+                arrow=True, ctrl=True, label="ALUOp", label_color=CTRL_COLOR, label_side=DOWN,
                 tip_dir=UP,
                 wire_func=make_straight_wire,
             ),
-            # ALU Control output → ALU ctrl port
+            # ALU Control output → ALU ctrl port (arrives at bottom of ALU from below)
             "ac_alu": make_connection(
                 ac_out, alu_ctrl,
                 ctrl=True,
+                tip_dir=UP,
             ),
-            # ALU output → stub (to DataMem)
-            "alu_out": make_connection(
-                alu_out, alu_out + RIGHT * 1.0,
+            # ALU output → junction just left of DM
+            "alu_junc": make_connection(
+                alu_out, alu_junc,
                 arrow=False, label="ALU result",
+                wire_func=make_straight_wire,
+            ),
+            # Junction → DM address (short horizontal, open space)
+            "junc_dm": make_connection(alu_junc, dm_addr),
+            # Read data 2 junction → Data Memory write data (routes below ALU)
+            "rd2_dm": make_connection(
+                rd2, dm_wd,
+                bend_y=alu_ctrl[1] - 1.0,
+                wire_func=make_v_h_v_wire,
+            ),
+            # MemRead control stub
+            "mem_read": make_connection(
+                dm_mr + UP * 0.6, dm_mr,
+                arrow=True, ctrl=True, label="MemRead", label_color=CTRL_COLOR, label_side=DOWN,
+                tip_dir=UP,
+                wire_func=make_straight_wire,
+            ),
+            # MemWrite control stub
+            "mem_write": make_connection(
+                dm_mw + UP * 0.6, dm_mw,
+                arrow=True, ctrl=True, label="MemWrite", label_color=CTRL_COLOR, label_side=DOWN,
+                tip_dir=UP,
+                wire_func=make_straight_wire,
+            ),
+            # Data Memory read data → WB MUX input 1
+            "dm_wb": make_connection(dm_rd, wb_in1, label="Read data"),
+            # Junction → WB MUX input 0: down in open space left of DM, under DM, up to WB MUX
+            "alu_wb": make_connection(
+                alu_junc, wb_in0,
+                wire_func=make_v_h_v_wire,
+                bend_y=dm.shape.get_bottom()[1] - 0.5,
+            ),
+            # WB MUX output → RegFile write data (feedback loop under datapath)
+            # corridor must clear funct_corridor_y (lowest wire in scene)
+            "wb_rf": make_connection(
+                wb_out, rf.get_write_data(),
+                wire_func=make_feedback_wire,
+                offset_y=(funct_corridor_y - 1.0) - min(wb_out[1], rf.get_write_data()[1]),
+            ),
+            # MemtoReg control → WB MUX select
+            "mem_to_reg": make_connection(
+                wb_sel + DOWN * 0.5, wb_sel,
+                arrow=False, ctrl=True, label="MemtoReg", label_color=CTRL_COLOR, label_side=DOWN,
                 wire_func=make_straight_wire,
             ),
             # ALU Zero flag → stub
             "alu_zero": make_connection(
                 alu_zero, alu_zero + UP * 0.6 + RIGHT * 0.5,
-                arrow=False, ctrl=True, label="Zero",
-                wire_func=make_straight_wire,
-            ),
-            "regdst": make_connection(
-                msel + DOWN * 0.5, msel,
-                arrow=False, ctrl=True, label="RegDst",
+                arrow=False, ctrl=True, label="Zero", label_color=CTRL_COLOR, label_side=DOWN,
                 wire_func=make_straight_wire,
             ),
         }
 
-        dot_to_m0 = make_junction(np.array([mux_tap_x, rr2[1], 0]))
+        dot_rd2    = make_junction(rd2)
+        dot_alu    = make_junction(alu_junc)
 
-        # ── 5. draw everything ─────────────────────────────────────────────
-        animate_bus(self, bus, trunk_rt=0.5, branch_rt=0.7, stagger=0.15)
-        draw_connections(self, wires, run_time=0.8)
-        self.play(FadeIn(dot_to_m0), FadeIn(dot_funct), run_time=0.3)
-        self.wait(0.5)
-
-        # ── 6. signal flow animation ───────────────────────────────────────
-        animate_data_path(self, [
-            {"component": im.shape, "label": "Fetch"},
-            {"wire": bus["entry"]},
-            {"wire": bus["spine"]},
-            *[{"wire": w} for w in bus["branches"]],
-            # Sign-extend path
-            {"component": se.shape, "label": "Sign-extend"},
-            {"wire": wires["se_am1"]["wire"]},
-            # RegDst MUX → Write register
-            {"wire": wires["to_m0"]["wire"]},
-            {"ctrl": wires["regdst"]["wire"]},
-            {"component": mux.shape, "label": "RegDst MUX"},
-            {"wire": wires["mux_wr"]["wire"]},
-            {"component": rf.shape, "label": "Registers"},
-            # Read data 1 → ALU input A
-            {"wire": wires["rd1_alu"]["wire"]},
-            # Read data 2 → ALU MUX → ALU input B
-            {"wire": wires["rd2_am0"]["wire"]},
-            {"ctrl": wires["alusrc"]["wire"]},
-            {"component": alu_mux.shape, "label": "ALUSrc MUX"},
-            {"wire": wires["amux_alu"]["wire"]},
-            # ALU Control decodes
-            {"ctrl": wires["funct_ac"]["wire"]},
-            {"ctrl": wires["aluop_ac"]["wire"]},
-            {"component": alu_control.shape, "label": "ALU Control"},
-            {"ctrl": wires["ac_alu"]["wire"]},
-            # ALU executes
-            {"component": alu.shape, "label": "ALU"},
-            {"wire": wires["alu_out"]["wire"]},
-        ])
-
-        self.wait(1.5)
+        # ── 5. draw everything (static — animations added later) ───────────
+        self.add(*bus["all"])
+        for conn in wires.values():
+            self.add(conn["all"])
+        self.add(funct_label, dot_funct, dot_rd2, dot_alu)
+        self.wait(1)
