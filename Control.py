@@ -7,13 +7,12 @@ class ControlComponent(VGroup):
     Main Control Unit for the RISC-V single-cycle datapath.
     Oval shape (P&H style) that decodes opcode into control signals.
 
-    Input:  opcode from instruction [31-26] (left)
+    Input:  opcode from instruction [6:0] (left)
     Outputs (right, spaced vertically):
         RegDst, Branch, MemRead, MemtoReg, ALUOp, MemWrite, ALUSrc, RegWrite
     """
 
     SIGNALS = [
-        "RegDst",
         "Branch",
         "MemRead",
         "MemtoReg",
@@ -50,7 +49,7 @@ class ControlComponent(VGroup):
 
 
     def get_opcode_input(self) -> np.ndarray:
-        """Left — opcode / Inst[31-26]."""
+        """Left — opcode / Inst[6:0]."""
         x = self.shape.get_left()[0] - self._offset
         y = self.get_center()[1]
         return np.array([x, y, 0])
@@ -67,26 +66,23 @@ class ControlComponent(VGroup):
         x = self.shape.get_right()[0] + self._offset
         return np.array([x, y, 0])
 
-    def get_reg_dst(self) -> np.ndarray:
+    def get_branch(self) -> np.ndarray:
         return self._signal_port(0)
 
-    def get_branch(self) -> np.ndarray:
+    def get_mem_read(self) -> np.ndarray:
         return self._signal_port(1)
 
-    def get_mem_read(self) -> np.ndarray:
+    def get_mem_to_reg(self) -> np.ndarray:
         return self._signal_port(2)
 
-    def get_mem_to_reg(self) -> np.ndarray:
+    def get_alu_op(self) -> np.ndarray:
         return self._signal_port(3)
 
-    def get_alu_op(self) -> np.ndarray:
+    def get_mem_write(self) -> np.ndarray:
         return self._signal_port(4)
 
-    def get_mem_write(self) -> np.ndarray:
+    def get_alu_src(self) -> np.ndarray:
         return self._signal_port(5)
 
-    def get_alu_src(self) -> np.ndarray:
-        return self._signal_port(6)
-
     def get_reg_write(self) -> np.ndarray:
-        return self._signal_port(7)
+        return self._signal_port(6)
