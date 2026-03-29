@@ -328,7 +328,7 @@ def make_v_h_v_wire(
                                   stroke_width=stroke_width)
 
     by = bend_y if bend_y is not None else (
-        start[1] + (end[1] - start[1]) * some_ratio
+        start[1] + (end[1] - start[1]) * bend_ratio
     )
 
     return make_polyline(
