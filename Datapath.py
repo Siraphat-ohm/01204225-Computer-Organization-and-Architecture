@@ -36,7 +36,7 @@ config.frame_width = 30
 config.frame_height = 16.875
 
 
-class DatapathTest(Scene):
+class SingleDatapath(Scene):
     def construct(self):
 
         # 1. Instantiate all components (Textbook Layout)
