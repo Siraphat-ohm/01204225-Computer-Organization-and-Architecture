@@ -11,7 +11,7 @@ class SignExtendComponent(VGroup):
         width: float = 2.0,
         height: float = 1.6,
         body_color: str = "#DDDDDD",
-        label: str = "Sign-\nextend",
+        label: str = "Imm\nGen",
         port_offset: float = 0.15,
         **kwargs,
     ):
@@ -52,8 +52,8 @@ class SignExtendComponent(VGroup):
         lbl.move_to(self.shape.get_center())
         self.add(lbl)
 
-        in_lbl = Text("12", font_size=10, color=self._color)
-        in_lbl.move_to(self.shape.get_left() + UP * 0.35 + RIGHT * 0.2)
+        in_lbl = Text("inst[31:7]", font_size=9, color=self._color)
+        in_lbl.move_to(self.shape.get_left() + UP * 0.30 + RIGHT * 0.38)
         self.add(in_lbl)
 
         out_lbl = Text("32", font_size=10, color=self._color)
