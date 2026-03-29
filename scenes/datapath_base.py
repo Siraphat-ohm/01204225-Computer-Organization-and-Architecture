@@ -34,8 +34,8 @@ from utils import (
 )
 
 # 16:9 wide frame for full single-cycle datapath
-config.frame_width = 30
-config.frame_height = 16.875
+config.frame_width  = 28.0
+config.frame_height = 15.75
 
 
 class DatapathBase(Scene):
@@ -53,7 +53,7 @@ class DatapathBase(Scene):
 
     def setup_datapath(self) -> None:
         # ── 1. Instantiate all components ────────────────────────────────────
-        self.pc = PCComponent(width=1.0, height=2.0).move_to(LEFT * 13.0)
+        self.pc = PCComponent(width=1.0, height=2.0).move_to(LEFT * 12.0)
 
         self.im = InstructionMemoryComponent(
             width=2.6,
@@ -106,6 +106,7 @@ class DatapathBase(Scene):
         )
 
         self.pc4_add = AdderComponent().move_to(LEFT * 10.0 + UP * 5.5)
+        self.pc4_add.shift(RIGHT * 1.5 )
 
         self.shift_left = ShiftLeft1Component().move_to(RIGHT * 4.5 + UP * 5.5)
 
@@ -113,7 +114,7 @@ class DatapathBase(Scene):
 
         self.and_gate = AndGateComponent().move_to(RIGHT * 11.5 + UP * 5.5)
 
-        self.pcsrc_mux = MuxComponent().move_to(RIGHT * 14.0 + UP * 5.5)
+        self.pcsrc_mux = MuxComponent().move_to(RIGHT * 13.0 + UP * 5.5)
 
         # ── 2. Centre all components ──────────────────────────────────────────
         everything = VGroup(
@@ -123,7 +124,7 @@ class DatapathBase(Scene):
             self.pc4_add, self.branch_add, self.shift_left,
             self.and_gate, self.pcsrc_mux,
         )
-        everything.move_to(ORIGIN)
+        everything.move_to(ORIGIN*1.5)
         self.add(everything)
 
         # ── 3. Cache port positions ───────────────────────────────────────────
@@ -275,7 +276,7 @@ class DatapathBase(Scene):
         )
         self.dot_p4     = make_junction(p4_out)
         self.dot_rd2    = make_junction(rd2)
-        self.dot_se     = make_junction(se_out, color=SIGNAL_COLOR)
+        self.dot_se     = make_junction(se_out)
         self.dot_alu    = make_junction(
             np.array([self.dm.shape.get_left()[0] - 0.5, alu_out[1], 0])
         )
@@ -420,7 +421,7 @@ class DatapathBase(Scene):
             "rd2_am0":   make_connection(rd2, am0, label="Read data 2"),
             "se_am1":    make_connection(
                 se_out, am1,
-                label="Imm32",
+                label="Imm64",
                 bend_x=am1[0] - 0.4,
             ),
             "amux_alu":  make_connection(amout, alu_b),
@@ -501,21 +502,21 @@ class DatapathBase(Scene):
         rows = VGroup()
         for name, val in signals.items():
             color = YELLOW if name in active_signals else "#888888"
-            row = Text(f"{name} = {val}", font_size=11, color=color)
+            row = Text(f"{name} = {val}", font_size=22, color=color)
             rows.add(row)
-        rows.arrange(DOWN, aligned_edge=LEFT, buff=0.05)
+        rows.arrange(DOWN, aligned_edge=LEFT, buff=0.15)
 
         box = SurroundingRectangle(
-            rows, color=GRAY, buff=0.12, corner_radius=0.08
+            rows, color=GRAY, buff=0.28, corner_radius=0.12, stroke_width=2.5
         )
-        title = Text("Control", font_size=11, color=GRAY, weight=BOLD)
-        title.next_to(box, UP, buff=0.04)
+        title = Text("Control", font_size=26, color=GRAY, weight=BOLD)
+        title.next_to(box, UP, buff=0.08)
 
         group = VGroup(box, rows, title)
         if position is not None:
             group.move_to(position)
         else:
-            group.to_corner(DR, buff=0.25)
+            group.to_corner(DL, buff=0.35).shift(RIGHT * 0.5)
 
         self.play(FadeIn(group), run_time=0.4)
         return group
@@ -529,10 +530,18 @@ class DatapathBase(Scene):
         if anims:
             self.play(*anims, run_time=0.5)
 
+    def clear_stage_banner(self) -> None:
+        """Fade out the currently visible stage banner, if any."""
+        if getattr(self, "_current_stage_banner", None) is not None:
+            self.play(FadeOut(self._current_stage_banner), run_time=0.25)
+            self._current_stage_banner = None
+
     def stage_banner(self, label: str) -> None:
-        """Flash a brief stage label (IF / ID / EX / MEM / WB)."""
-        txt = Text(label, font_size=18, color=YELLOW)
-        txt.to_edge(LEFT, buff=0.3).shift(DOWN * 3.5)
-        self.play(FadeIn(txt, shift=RIGHT * 0.15), run_time=0.3)
-        self.wait(0.2)
-        self.play(FadeOut(txt), run_time=0.25)
+        """Show a persistent stage label; replaces the previous one when called again."""
+        txt = Text(label, font_size=24, color=YELLOW)
+        txt.to_edge(DOWN, buff=0.35)
+        anims = [FadeIn(txt, shift=RIGHT * 0.15)]
+        if getattr(self, "_current_stage_banner", None) is not None:
+            anims.append(FadeOut(self._current_stage_banner))
+        self.play(*anims, run_time=0.3)
+        self._current_stage_banner = txt

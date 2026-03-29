@@ -9,7 +9,7 @@ CTRL_COLOR     = "#4A90D9"
 
 DOT_RADIUS     = 0.07
 STROKE_WIDTH   = 2.5
-LABEL_FONT     = 12
+LABEL_FONT     = 14
 LABEL_OFFSET   = 0.13   # gap between wire and label text
 
 
