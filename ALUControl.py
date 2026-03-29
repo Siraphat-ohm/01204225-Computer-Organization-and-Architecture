@@ -51,19 +51,19 @@ class ALUControlComponent(VGroup):
         self.add(lbl)
 
     def get_funct_input(self) -> np.ndarray:
-        """Bottom-left — funct3/funct7 fields from instruction (wire arrives from below)."""
-        x = self.get_center()[0] - self.shape.get_width() / 4
+        """Bottom center — funct3/funct7 fields from instruction."""
+        x = self.get_center()[0]
         y = self.shape.get_bottom()[1] - self._offset
         return np.array([x, y, 0])
 
     def get_aluop_input(self) -> np.ndarray:
-        """Top-right — ALUOp from main Control Unit."""
+        """Top-left — ALUOp from main Control Unit."""
         y = self.shape.get_top()[1] + self._offset
-        x = self.get_center()[0] + self.shape.get_width() / 4
+        x = self.get_center()[0] - self.shape.get_width() / 4
         return np.array([x, y, 0])
 
     def get_alu_ctrl_output(self) -> np.ndarray:
-        """Right — 4-bit ALU control signal to ALU."""
-        x = self.shape.get_right()[0] + self._offset
-        y = self.get_center()[1]
+        """Top-right — 4-bit ALU control signal to ALU."""
+        y = self.shape.get_top()[1] + self._offset
+        x = self.get_center()[0] + self.shape.get_width() / 4
         return np.array([x, y, 0])
