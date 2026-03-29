@@ -9,8 +9,8 @@ CTRL_COLOR     = "#4A90D9"
 
 DOT_RADIUS     = 0.07
 STROKE_WIDTH   = 2.5
-LABEL_FONT     = 14
-LABEL_OFFSET   = 0.13   # gap between wire and label text
+LABEL_FONT     = 18
+LABEL_OFFSET   = 0.16   # gap between wire and label text
 
 
 # ------------------------------------------------------------------------------
@@ -267,7 +267,7 @@ def highlight_component(scene, component, label="", run_time=0.5):
     anims = [Indicate(component, color=ACTIVE_COMP, scale_factor=1.06)]
     banner = None
     if label:
-        banner = Text(label, font_size=15, color=ACTIVE_COMP)
+        banner = Text(label, font_size=22, color=ACTIVE_COMP)
         banner.next_to(component, UP, buff=0.15)
         anims.append(FadeIn(banner, shift=UP * 0.1))
     scene.play(*anims, run_time=run_time)
@@ -286,7 +286,7 @@ def signal_flow(scene, steps, default_run_time=0.45):
             orig = w.get_color()
             scene.play(w.animate.set_color(color), run_time=rt)
             if "value" in step:
-                val = Text(step["value"], font_size=12, color=color)
+                val = Text(step["value"], font_size=18, color=color)
                 val.move_to(w.get_center() + UP * 0.22)
                 scene.play(FadeIn(val, shift=RIGHT * 0.2), run_time=rt * 0.4)
                 scene.play(FadeOut(val),                   run_time=rt * 0.3)
@@ -432,7 +432,7 @@ def animate_data_path(
             orig = w.get_color()
             scene.play(w.animate.set_color(col), run_time=rt)
             if "label" in step:
-                val = Text(step["label"], font_size=12, color=col)
+                val = Text(step["label"], font_size=18, color=col)
                 val.move_to(w.get_center() + UP * 0.22)
                 scene.play(FadeIn(val, shift=RIGHT * 0.15), run_time=rt * 0.4)
                 scene.play(FadeOut(val), run_time=rt * 0.3)
@@ -444,7 +444,7 @@ def animate_data_path(
             anims = [Indicate(c, color=col, scale_factor=1.05)]
             banner = None
             if "label" in step:
-                banner = Text(step["label"], font_size=15, color=col)
+                banner = Text(step["label"], font_size=22, color=col)
                 banner.next_to(c, UP, buff=0.15)
                 anims.append(FadeIn(banner, shift=UP * 0.1))
             scene.play(*anims, run_time=rt)
@@ -469,6 +469,7 @@ def make_connection(
     tip_dir              = LEFT,
     label_side           = UP,
     label_color          = WHITE,
+    label_font:   int   = 16,
     color                = WHITE,
     ctrl:         bool  = False,
     wire_func            = None,
@@ -498,7 +499,7 @@ def make_connection(
         
     lbl = None
     if label:
-        lbl = Text(label, font_size=12, color=label_color or col)
+        lbl = Text(label, font_size=label_font, color=label_color or col)
 
         # หา segment แนวนอนที่ยาวที่สุดใน polyline แล้ววาง label ตรงกลาง
         anchors = wire.get_anchors()
@@ -571,19 +572,19 @@ def make_stub_arrow(port, direction=LEFT, length=1.0, color=GRAY) -> Arrow:
                  buff=0, stroke_width=2, color=color)
 
 
-def label_above(mob, text, font_size=13, color=WHITE):
+def label_above(mob, text, font_size=18, color=WHITE):
     lbl = Text(text, font_size=font_size, color=color)
     lbl.next_to(mob, UP, buff=0.08);  return lbl
 
-def label_below(mob, text, font_size=13, color=WHITE):
+def label_below(mob, text, font_size=18, color=WHITE):
     lbl = Text(text, font_size=font_size, color=color)
     lbl.next_to(mob, DOWN, buff=0.08); return lbl
 
-def label_left(mob, text, font_size=13, color=WHITE):
+def label_left(mob, text, font_size=18, color=WHITE):
     lbl = Text(text, font_size=font_size, color=color)
     lbl.next_to(mob, LEFT, buff=0.08); return lbl
 
-def label_right(mob, text, font_size=13, color=WHITE):
+def label_right(mob, text, font_size=18, color=WHITE):
     lbl = Text(text, font_size=font_size, color=color)
     lbl.next_to(mob, RIGHT, buff=0.08); return lbl
 
@@ -593,7 +594,7 @@ def draw_stub(scene, port, text="", direction=LEFT,
     arrow = make_stub_arrow(port, direction=direction, length=length, color=color)
     anims = [GrowArrow(arrow)]
     if text:
-        lbl = Text(text, font_size=14, color=text_color)
+        lbl = Text(text, font_size=20, color=text_color)
         lbl.next_to(arrow, direction, buff=0.08)
         anims.append(Write(lbl))
     scene.play(*anims)
