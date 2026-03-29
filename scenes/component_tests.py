@@ -125,3 +125,71 @@ class TestRegFileScene(Scene):
         self.play(*in_anims, *out_anims, GrowArrow(rw_arr), Write(rw_lbl))
         self.wait(2)
 
+from manim import *
+from InstructionMemory import InstructionMemoryComponent
+
+# manim -pql TestIM.py TestIMScene
+
+class TestIMScene(Scene):
+    def construct(self):
+        im = InstructionMemoryComponent(
+            output_offset=0.2,
+            show_port_labels=True,
+        ).scale(1.1)
+
+        self.play(Create(im), run_time=0.8)
+        self.wait(0.2)
+
+        kw  = dict(buff=0, stroke_width=2.5)
+        lkw = dict(font_size=13)
+
+        # ── input ──────────────────────────────────────────────────────────
+        addr = im.get_read_address()
+        self.play(
+            GrowArrow(Arrow(addr + LEFT * 1.2, addr, color=GRAY, **kw)),
+            Write(Text("PC", **lkw).next_to(addr + LEFT * 1.2, LEFT, buff=0.08)),
+        )
+
+        # ── outputs ────────────────────────────────────────────────────────
+        ports = [
+            (im.get_inst_6_0(),   "[6–0]   → Control",    GRAY),
+            (im.get_inst_19_15(), "[19–15] → Reg 1 (rs1)",GRAY),
+            (im.get_inst_24_20(), "[24–20] → Reg 2 (rs2)",GRAY),
+            (im.get_inst_11_7(),  "[11–7]  → MUX (rd)",   GRAY),
+            (im.get_inst_31_20(), "[31–20] → Sign-ext",   GRAY),
+        ]
+
+        anims = []
+        for pt, name, color in ports:
+            arr = Arrow(pt, pt + RIGHT * 2.2, color=color, **kw)
+            lbl = Text(name, **lkw).next_to(arr, RIGHT, buff=0.08)
+            anims += [GrowArrow(arr), Write(lbl)]
+
+        self.play(*anims, run_time=1.2)
+        self.wait(2)
+
+
+from SignExtend import SignExtendComponent
+
+class TestSignExtendScene(Scene):
+    def construct(self):
+        se = SignExtendComponent().scale(1.4)
+        self.play(Create(se), run_time=0.8)
+        self.wait(0.3)
+
+        kw  = dict(buff=0, stroke_width=2.5)
+        lkw = dict(font_size=14)
+
+        p_in  = se.get_input()
+        a_in  = Arrow(p_in + LEFT * 1.4, p_in, color=GRAY, **kw)
+        l_in  = Text("inst[31:7]", **lkw).next_to(a_in, LEFT, buff=0.08)
+
+        p_out = se.get_output()
+        a_out = Arrow(p_out, p_out + RIGHT * 1.4, color=GRAY, **kw)
+        l_out = Text("32-bit immediate", **lkw).next_to(a_out, RIGHT, buff=0.08)
+
+        self.play(
+            GrowArrow(a_in), Write(l_in),
+            GrowArrow(a_out), Write(l_out),
+        )
+        self.wait(2)

@@ -1,7 +1,7 @@
 from manim import *
 import numpy as np
 
-# ── constants ──────────────────────────────────────────────────────────────────
+# constants
 SIGNAL_COLOR   = YELLOW
 INACTIVE_COLOR = "#444444"
 ACTIVE_COMP    = YELLOW
@@ -13,9 +13,9 @@ LABEL_FONT     = 12
 LABEL_OFFSET   = 0.13   # gap between wire and label text
 
 
-# ══════════════════════════════════════════════════════════════════════════════
-#  PRIMITIVE HELPERS
-# ══════════════════════════════════════════════════════════════════════════════
+# ------------------------------------------------------------------------------
+# PRIMITIVE HELPERS
+# ------------------------------------------------------------------------------
 
 def h(pt: np.ndarray, x: float) -> np.ndarray:
     """Same y/z as pt, move to x."""
@@ -38,7 +38,14 @@ class _Polyline(TipableVMobject):
 
 def make_polyline(*pts, color=WHITE, stroke_width=STROKE_WIDTH) -> _Polyline:
     """Raw polyline through any number of points. Supports add_tip()."""
-    return _Polyline(*pts, stroke_width=stroke_width, color=color)
+    polyline = _Polyline(
+        *pts, 
+        stroke_width=stroke_width, 
+        color=color,
+    )
+    polyline.joint_type = LineJointType.ROUND
+    polyline.cap_style = CapStyleType.ROUND
+    return polyline
 
 
 def make_straight_wire(start, end, color=WHITE,
@@ -58,9 +65,9 @@ def make_junction(pos, radius=DOT_RADIUS, color=WHITE) -> Dot:
     return Dot(pos, radius=radius, color=color)
 
 
-# ══════════════════════════════════════════════════════════════════════════════
-#  1. ORTHOGONAL (MANHATTAN) WIRE  — fixes staircase-bend problem
-# ══════════════════════════════════════════════════════════════════════════════
+# ------------------------------------------------------------------------------
+# 1. ORTHOGONAL (MANHATTAN) WIRE — fixes staircase-bend problem
+# ------------------------------------------------------------------------------
 
 def make_ortho_wire(
     start: np.ndarray,
@@ -94,7 +101,7 @@ def make_ortho_wire(
     )
 
 
-# ── labelled version ──────────────────────────────────────────────────────────
+# labelled version
 
 def _label_on_segment(
     seg_start: np.ndarray,
@@ -143,9 +150,9 @@ def make_wire_labelled(
     return wire, lbl
 
 
-# ══════════════════════════════════════════════════════════════════════════════
-#  2. BUS SPLITTER  — fixes crowded/misplaced label problem
-# ══════════════════════════════════════════════════════════════════════════════
+# ------------------------------------------------------------------------------
+# 2. BUS SPLITTER — fixes crowded/misplaced label problem
+# ------------------------------------------------------------------------------
 
 def make_bus_split(
     origin:       np.ndarray,
@@ -233,9 +240,9 @@ def animate_bus(
         scene.play(*pop, run_time=0.35)
 
 
-# ══════════════════════════════════════════════════════════════════════════════
-#  3. ANIMATION HELPERS
-# ══════════════════════════════════════════════════════════════════════════════
+# ------------------------------------------------------------------------------
+# 3. ANIMATION HELPERS
+# ------------------------------------------------------------------------------
 
 def pulse_wire(scene, wire, color=SIGNAL_COLOR, run_time=0.4, restore=True):
     orig = wire.get_color()
@@ -291,9 +298,9 @@ def signal_flow(scene, steps, default_run_time=0.45):
         scene.wait(pause)
 
 
-# ══════════════════════════════════════════════════════════════════════════════
-#  4. V-H-V WIRE  — for control lines dropping from above
-# ══════════════════════════════════════════════════════════════════════════════
+# ------------------------------------------------------------------------------
+# 4. V-H-V WIRE — for control lines dropping from above
+# ------------------------------------------------------------------------------
 
 def make_v_h_v_wire(
     start: np.ndarray,
@@ -305,7 +312,7 @@ def make_v_h_v_wire(
     stroke_width: float      = STROKE_WIDTH,
 ) -> VMobject:
     """
-    V → H → V orthogonal wire.  Mirror of make_ortho_wire.
+    V → H → V orthogonal wire. Mirror of make_ortho_wire.
 
     Ideal for control lines that drop from a Control Unit above,
     run horizontally over components, then drop into a port below.
@@ -321,7 +328,7 @@ def make_v_h_v_wire(
                                   stroke_width=stroke_width)
 
     by = bend_y if bend_y is not None else (
-        start[1] + (end[1] - start[1]) * bend_ratio
+        start[1] + (end[1] - start[1]) * some_ratio
     )
 
     return make_polyline(
@@ -333,42 +340,47 @@ def make_v_h_v_wire(
     )
 
 
-# ══════════════════════════════════════════════════════════════════════════════
-#  5. FEEDBACK (U-TURN) WIRE  — for writeback / PC loops
-# ══════════════════════════════════════════════════════════════════════════════
+# ------------------------------------------------------------------------------
+# 5. FEEDBACK (U-TURN) WIRE — for writeback / PC loops
+# ------------------------------------------------------------------------------
 
 def make_feedback_wire(
     start: np.ndarray,
     end:   np.ndarray,
     *,
-    offset_y:    float = -1.0,
+    corridor_y:  float,
+    turn_up_x:   float,
     color                    = WHITE,
     stroke_width: float      = STROKE_WIDTH,
 ) -> VMobject:
     """
-    U-turn wire that routes *around* the datapath (below or above).
+    Flexible feedback/U-turn wire with explicit routing control.
 
-    Used for writeback paths (DataMem → RegFile write-data) or
-    PC feedback (PC+4 adder → PC input).
+    Route: start → V(corridor_y) → H(turn_up_x) → V(end_y) → H→ end
 
-    Route: start → down to corridor → horizontal → up to end.
-    offset_y is relative to the lower of start/end (negative = below).
+    corridor_y — absolute Y for the long horizontal run. Set below all
+                 components so the wire clears them without calculation.
+    turn_up_x  — absolute X where the wire turns vertical to reach end's
+                 Y-level. Set this to the LEFT of the destination port so
+                 the final segment is always horizontal (→ correct arrowhead
+                 angle; no vertical "stabbing" of the port from below).
+
+    The final segment is always horizontal, so Manim arrowheads render
+    correctly regardless of which component or port is the destination.
     """
-    corridor_y = min(start[1], end[1]) + offset_y
-
     return make_polyline(
         start,
-        v(start, corridor_y),
-        np.array([end[0], corridor_y, 0]),
-        v(end, corridor_y),
-        end,
+        v(start,      corridor_y),                # V down to corridor
+        np.array([turn_up_x, corridor_y, 0]),     # H along corridor
+        np.array([turn_up_x, end[1],     0]),     # V up to port height
+        end,                                      # H into port — horizontal entry ✓
         color=color, stroke_width=stroke_width,
     )
 
 
-# ══════════════════════════════════════════════════════════════════════════════
-#  6. DATAPATH ANIMATION MACRO
-# ══════════════════════════════════════════════════════════════════════════════
+# ------------------------------------------------------------------------------
+# 6. DATAPATH ANIMATION MACRO
+# ------------------------------------------------------------------------------
 
 def animate_data_path(
     scene,
@@ -443,9 +455,9 @@ def animate_data_path(
             scene.wait(p)
 
 
-# ══════════════════════════════════════════════════════════════════════════════
-#  7. PORT-TO-PORT CONNECTION  — wire + arrow + label in one call
-# ══════════════════════════════════════════════════════════════════════════════
+# ------------------------------------------------------------------------------
+# 7. PORT-TO-PORT CONNECTION — wire + arrow + label in one call
+# ------------------------------------------------------------------------------
 
 def make_connection(
     start: np.ndarray,
@@ -471,7 +483,7 @@ def make_connection(
       "label" — Text label (or None)
       "all"   — VGroup of everything (for single Create)
 
-    wire_func defaults to make_ortho_wire.  Pass make_v_h_v_wire,
+    wire_func defaults to make_ortho_wire. Pass make_v_h_v_wire,
     make_straight_wire, etc. for other routing.
     """
     col = CTRL_COLOR if ctrl else color
@@ -483,16 +495,30 @@ def make_connection(
     if arrow:
         arr = make_stub_arrow(end, direction=tip_dir,
                               length=tip_length, color=col)
-
+        
     lbl = None
     if label:
-        lbl = _label_on_segment(
-            start,
-            h(start, (start[0] + end[0]) / 2),
-            label,
-            side=label_side,
-            color=label_color or col,
-        )
+        lbl = Text(label, font_size=12, color=label_color or col)
+
+        # หา segment แนวนอนที่ยาวที่สุดใน polyline แล้ววาง label ตรงกลาง
+        anchors = wire.get_anchors()
+        best_mid = wire.point_from_proportion(0.5)  # fallback
+        best_len = -1
+
+        for i in range(len(anchors) - 1):
+            a, b = anchors[i], anchors[i + 1]
+            # เช็กว่าเป็น segment แนวนอน (y ต่างกันน้อยมาก)
+            if abs(a[1] - b[1]) < 1e-2:
+                seg_len = abs(b[0] - a[0])
+                if seg_len > best_len:
+                    best_len = seg_len
+                    best_mid = (a + b) / 2
+
+        if np.array_equal(label_side, UP):
+            lbl.next_to(best_mid, UP, buff=0.08)
+        else:
+            lbl.next_to(best_mid, DOWN, buff=0.08)
+        
 
     parts = [wire]
     if arr:
@@ -530,9 +556,9 @@ def draw_connections(
         scene.play(*anims, run_time=run_time)
 
 
-# ══════════════════════════════════════════════════════════════════════════════
-#  8. LEGACY / CONVENIENCE
-# ══════════════════════════════════════════════════════════════════════════════
+# ------------------------------------------------------------------------------
+# 8. LEGACY / CONVENIENCE
+# ------------------------------------------------------------------------------
 
 def make_wire(start, end, color=WHITE, stroke_width=STROKE_WIDTH) -> VMobject:
     mid_x = (start[0] + end[0]) / 2
@@ -572,3 +598,49 @@ def draw_stub(scene, port, text="", direction=LEFT,
         anims.append(Write(lbl))
     scene.play(*anims)
     return arrow
+
+
+def debug_wire_crossings(scene: Scene, connections: dict):
+    """
+    ฟังก์ชันผู้ช่วยสำหรับ Debug: จะวาดวงกลมสีแดงกะพริบตรงจุดที่สายไฟตัดกันแนวดิ่ง-แนวนอน
+    ช่วยให้เห็นว่าสายไหนทับกันบ้าง จะได้ปรับ bend_x, bend_y หลบได้ง่ายขึ้น
+    """
+    segments = []
+    
+    # 1. แตกสายไฟทั้งหมดออกเป็นเส้นตรงย่อยๆ
+    for conn in connections.values():
+        if "wire" in conn and conn["wire"] is not None:
+            # ดึงจุดมุมทั้งหมดของสายไฟ
+            anchors = conn["wire"].get_anchors()
+            for i in range(len(anchors) - 1):
+                segments.append((anchors[i], anchors[i+1]))
+                
+    cross_points = []
+    
+    # 2. เช็กจุดตัดของทุกเส้นคู่
+    for i in range(len(segments)):
+        for j in range(i + 1, len(segments)):
+            A, B = segments[i]
+            C, D = segments[j]
+            
+            # กรณีที่ 1: AB แนวนอน, CD แนวตั้ง
+            if abs(A[1] - B[1]) < 1e-3 and abs(C[0] - D[0]) < 1e-3:
+                # เช็กว่าแกน X ของเส้นแนวตั้ง ทะลุผ่านแกน X ของเส้นแนวนอนไหม
+                if (min(A[0], B[0]) + 1e-3 < C[0] < max(A[0], B[0]) - 1e-3) and \
+                   (min(C[1], D[1]) + 1e-3 < A[1] < max(C[1], D[1]) - 1e-3):
+                    cross_points.append(np.array([C[0], A[1], 0]))
+                    
+            # กรณีที่ 2: AB แนวตั้ง, CD แนวนอน
+            elif abs(A[0] - B[0]) < 1e-3 and abs(C[1] - D[1]) < 1e-3:
+                if (min(C[0], D[0]) + 1e-3 < A[0] < max(C[0], D[0]) - 1e-3) and \
+                   (min(A[1], B[1]) + 1e-3 < C[1] < max(A[1], B[1]) - 1e-3):
+                    cross_points.append(np.array([A[0], C[1], 0]))
+
+    # 3. วาดวงกลมสีแดงตรงจุดที่ตัดกัน
+    if cross_points:
+        print(f"⚠️ Debugger: พบสายไฟตัดกัน {len(cross_points)} จุด!")
+        for pt in cross_points:
+            circle = Circle(radius=0.15, color=RED, stroke_width=4).move_to(pt)
+            scene.add(circle)
+            # ทำให้กะพริบเพื่อสะดุดตา
+            scene.play(Indicate(circle, color=RED, scale_factor=1.5), run_time=0.3)

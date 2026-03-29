@@ -49,9 +49,9 @@ class ControlComponent(VGroup):
 
 
     def get_opcode_input(self) -> np.ndarray:
-        """Left — opcode / Inst[6:0]."""
-        x = self.shape.get_left()[0] - self._offset
-        y = self.get_center()[1]
+        """Bottom-centre — opcode / Inst[6:0], wire enters from below."""
+        x = self.get_center()[0]
+        y = self.shape.get_bottom()[1] - self._offset
         return np.array([x, y, 0])
 
     def _signal_port(self, index: int) -> np.ndarray:

@@ -56,7 +56,7 @@ class SignExtendComponent(VGroup):
         in_lbl.move_to(self.shape.get_left() + UP * 0.30 + RIGHT * 0.38)
         self.add(in_lbl)
 
-        out_lbl = Text("32", font_size=10, color=self._color)
+        out_lbl = Text("64", font_size=10, color=self._color)
         out_lbl.move_to(self.shape.get_right() + UP * 0.35 + LEFT * 0.2)
         self.add(out_lbl)
 

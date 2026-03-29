@@ -62,7 +62,7 @@ class InstructionMemoryComponent(VGroup):
             lbl.move_to([x_r, y, 0]).align_to([x_r, 0, 0], RIGHT)
             self.add(lbl)
 
-    # ── port helpers ───────────────────────────────────────────────────────
+    # port helpers
 
     def _left_port(self, y_frac):
         x = self.shape.get_left()[0] - self._in_off
@@ -79,14 +79,19 @@ class InstructionMemoryComponent(VGroup):
         return self._left_port(0.32)
 
     def inst_bus_origin(self) -> np.ndarray:
-        """
-        Right edge at Instruction[31-0] label height.
-        Use as 'origin' for make_bus_split().
-        Intentionally NOT prefixed with get_ to avoid Manim attribute magic.
-        """
         x = self.shape.get_right()[0] + self._out_off
-        y = self.get_center()[1] - 0.10 * self.shape.get_height()
+        y = self.get_center()[1] + self._port_y["31_20"] * self.shape.get_height()  # ← ตรงกับ port จริง
         return np.array([x, y, 0])
+
+    # def inst_bus_origin(self) -> np.ndarray:
+    #     """
+    #     Right edge at Instruction[31-0] label height.
+    #     Use as 'origin' for make_bus_split().
+    #     Intentionally NOT prefixed with get_ to avoid Manim attribute magic.
+    #     """
+    #     x = self.shape.get_right()[0] + self._out_off
+    #     y = self.get_center()[1] - 0.10 * self.shape.get_height()
+    #     return np.array([x, y, 0])
 
     def get_inst_6_0(self) -> np.ndarray:
         """Opcode [6:0] → Control unit."""

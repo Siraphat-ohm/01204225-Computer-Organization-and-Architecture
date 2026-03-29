@@ -10,7 +10,7 @@ class MuxComponent(VGroup):
         self,
         width: float = 0.6,
         height: float = 1.5,
-        body_color: str = "#555555",
+        body_color: str = "#DDDDDD",
         ctrl_color: str = "#4A90D9",
         label: str = "MUX",
         port_offset: float = 0.15,
@@ -74,7 +74,16 @@ class MuxComponent(VGroup):
         return self.shape.get_right() + RIGHT * self._offset
 
     def get_ctrl_port(self) -> np.ndarray:
+        """Backward-compatible control port accessor (bottom)."""
+        return self.get_ctrl_port_bottom()
+
+    def get_ctrl_port_bottom(self) -> np.ndarray:
+        """Bottom control/select port."""
         return self.shape.get_bottom() + DOWN * self._offset
+
+    def get_ctrl_port_top(self) -> np.ndarray:
+        """Top control/select port."""
+        return self.shape.get_top() + UP * self._offset
 
 class TestMuxScene(Scene):
     def construct(self):
