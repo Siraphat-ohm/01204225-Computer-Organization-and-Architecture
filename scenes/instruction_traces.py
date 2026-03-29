@@ -22,6 +22,8 @@ from utils import CTRL_COLOR, SIGNAL_COLOR, animate_data_path
 from scenes.datapath_base import DatapathBase
 
 
+from scenes.timing_data import CRITICAL_PATH_PS, INST_TIMINGS  # re-exported for back-compat
+
 # ── Shared control-signal tables ──────────────────────────────────────────────
 
 _CTRL_R = {
@@ -84,7 +86,8 @@ class TraceRType(DatapathBase):
             "alu_wb", "wb_rf",
             "ctrl_regwrite",
         }
-        self.dim_inactive_wires(active_wire_keys)
+        self.dim_inactive_wires(active_wire_keys)            # New Header Positioning: 
+            # Place it strictly between the Title and the Table
         self.wait(0.3)
 
         # ── IF: Instruction Fetch ──────────────────────────────────────────
@@ -129,6 +132,7 @@ class TraceRType(DatapathBase):
         ])
 
         self.wait(2)
+        self.clear_stage_banner()
         self.play(FadeOut(banner), FadeOut(ctrl_table))
         self.wait(0.5)
 
@@ -213,6 +217,7 @@ class TraceLW(DatapathBase):
         ])
 
         self.wait(2)
+        self.clear_stage_banner()
         self.play(FadeOut(banner), FadeOut(ctrl_table))
         self.wait(0.5)
 
@@ -291,6 +296,7 @@ class TraceSW(DatapathBase):
         self.wait(0.4)
 
         self.wait(2)
+        self.clear_stage_banner()
         self.play(FadeOut(banner), FadeOut(ctrl_table))
         self.wait(0.5)
 
@@ -388,5 +394,20 @@ class TraceBeq(DatapathBase):
         ])
 
         self.wait(2)
+        self.clear_stage_banner()
         self.play(FadeOut(banner), FadeOut(ctrl_table))
         self.wait(0.5)
+
+class DebugTrace(TraceRType):
+    """
+    Static snapshot — no animation, no wait.
+    ใช้สำหรับ debug layout/UI เท่านั้น
+    """
+
+    def construct(self):
+        # monkey-patch ทุก animation ออก
+        self.play = lambda *a, **kw: None
+        self.wait = lambda *a, **kw: None
+
+        # เรียก construct ของ TraceRType ปกติ
+        super().construct()
