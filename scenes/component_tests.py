@@ -53,7 +53,7 @@ class TestALUScene(Scene):
 
 class TestMuxScene(Scene):
     def construct(self):
-        mux = MuxComponent(input_offset=0.2).scale(1.4)
+        mux = MuxComponent(port_offset=0.2).scale(1.4)
         self.play(Create(mux), run_time=0.7)
         self.wait(0.3)
 
@@ -87,7 +87,7 @@ class TestMuxScene(Scene):
 class TestRegFileScene(Scene):
     def construct(self):
         from RegFile import RegFileComponent
-        rf = RegFileComponent(input_offset=0.2).scale(1.1)
+        rf = RegFileComponent(port_offset=0.2).scale(1.1)
         self.play(Create(rf), run_time=0.9)
         self.wait(0.3)
 
