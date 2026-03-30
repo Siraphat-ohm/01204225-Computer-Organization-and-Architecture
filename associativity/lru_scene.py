@@ -1,5 +1,5 @@
 from manim import *
-from constants import *
+from .constants import *
 
 
 # ── Helper: single cache-way box ──────────────────────────────────────────────

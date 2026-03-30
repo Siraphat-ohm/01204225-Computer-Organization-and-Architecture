@@ -1,6 +1,6 @@
 from manim import *
-from constants import *
-from logic import (
+from .constants import *
+from .logic import (
     AssocCacheConfig, COMPARE_SEQ,
     DM_CFG, CMP_2WAY_CFG, CMP_4WAY_CFG,
     NWayLRUSimulator, split_assoc_address,

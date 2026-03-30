@@ -1,14 +1,14 @@
 from manim import *
-from constants import *
-from logic import (
+from .constants import *
+from .logic import (
     TWO_WAY_CFG, FOUR_WAY_CFG,
     NWayLRUSimulator, split_assoc_address,
 )
-from ui_assoc import AssocCalcDisplay, TwoWayTraceTable, FourWayTraceTable
+from .ui_assoc import AssocCalcDisplay, TwoWayTraceTable, FourWayTraceTable
 
 import sys, os
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "addressing"))
-from ui_misc import AccessSequenceDisplay, HitRateCounter, MissTypeCounter
+from addressing.ui_misc import AccessSequenceDisplay, HitRateCounter, MissTypeCounter
 
 LEFT_X  = -3.2
 RIGHT_X =  3.3

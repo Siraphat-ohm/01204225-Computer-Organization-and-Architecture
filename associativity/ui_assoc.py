@@ -1,6 +1,6 @@
 from manim import *
-from constants import *
-from logic import AssocCacheConfig, split_assoc_address
+from .constants import *
+from .logic import AssocCacheConfig, split_assoc_address
 
 
 class AssocCalcDisplay(VGroup):

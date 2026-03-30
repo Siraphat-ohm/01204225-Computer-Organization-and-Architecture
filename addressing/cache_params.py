@@ -1,6 +1,6 @@
 from manim import *
-from constants import *
-from cache_logic import CacheTraceConfig
+from .constants import *
+from .cache_logic import CacheTraceConfig
 
 
 class CacheParamsScene(Scene):

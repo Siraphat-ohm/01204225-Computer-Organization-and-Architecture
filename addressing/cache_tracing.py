@@ -1,9 +1,9 @@
 from manim import *
-from constants import *
-from cache_logic import CacheTraceConfig, CacheSimulator, split_cache_address
-from ui_misc import AccessSequenceDisplay, HitRateCounter, MissTypeCounter
-from ui_table import CacheTraceTable
-from ui_address import CacheCalcDisplay
+from .constants import *
+from .cache_logic import CacheTraceConfig, CacheSimulator, split_cache_address
+from .ui_misc import AccessSequenceDisplay, HitRateCounter, MissTypeCounter
+from .ui_table import CacheTraceTable
+from .ui_address import CacheCalcDisplay
 
 LEFT_X  = -3.5
 RIGHT_X =  3.5

@@ -1,5 +1,5 @@
 from manim import *
-from constants import *
+from .constants import *
 
 class Comparator(VGroup):
     """Hardware comparator logic block."""
