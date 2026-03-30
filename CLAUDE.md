@@ -22,20 +22,46 @@ manim -pqh <file.py> <SceneName>
 
 **Examples**:
 ```bash
-# Render individual component tests
-manim -pql scenes/component_tests.py TestALUScene
-manim -pql scenes/component_tests.py TestMuxScene
-manim -pql scenes/component_tests.py TestRegFileScene
-manim -pql scenes/component_tests.py TestIMScene
+# Single-cycle component tests
+manim -pql single_cycle/scenes/component_tests.py TestALUScene
+manim -pql single_cycle/scenes/component_tests.py TestMuxScene
+manim -pql single_cycle/scenes/component_tests.py TestRegFileScene
+manim -pql single_cycle/scenes/component_tests.py TestIMScene
 
-# Render integration scenes
-manim -pql scenes/integration_scenes.py IfALUMuxScene
-manim -pql wiring_test.py DatapathTest
+# Single-cycle integration / trace scenes
+manim -pql single_cycle/scenes/integration_scenes.py IfALUMuxScene
+manim -pql single_cycle/scenes/instruction_traces.py TraceRType
+manim -pql single_cycle/performance.py PerformanceScene
+
+# Pipeline scenes
+manim -pql pipeline/pipeline_datapath.py PipelinedDatapathScene
+manim -pql pipeline/pipeline_performance.py PipelinePerformanceScene
+
+# Cache addressing
+manim -pql addressing/cache_params.py CacheParamsScene
+manim -pql addressing/cache_tracing.py CacheTracingScene
+
+# Cache associativity
+manim -pql associativity/lru_scene.py LRUScene
+manim -pql associativity/assoc_tracing.py TwoWayTracingScene
 ```
 
 ## Architecture
 
-### Component modules (root directory)
+### Folder structure
+
+```
+single_cycle/          ← RISC-V single-cycle datapath
+  *.py                 ← component classes (ALU, MUX, RegFile, …)
+  utils.py             ← wire/animation helpers
+  performance.py       ← single-cycle performance scene
+  scenes/              ← single-cycle scenes (traces, integration, …)
+pipeline/              ← pipeline datapath & performance scenes
+addressing/            ← cache addressing scenes
+associativity/         ← cache associativity scenes
+```
+
+### Component modules (`single_cycle/`)
 
 Each file defines a single Manim `VGroup` subclass representing a RISC-V datapath component:
 
@@ -44,9 +70,9 @@ Each file defines a single Manim `VGroup` subclass representing a RISC-V datapat
 - **`RegFile.py`** — `RegFileComponent`: Register file rectangle with read/write ports. Ports: `get_read_reg1/2()`, `get_write_reg()`, `get_write_data()`, `get_read_data1/2()`, `get_reg_write()`.
 - **`InstructionMemory.py`** — `InstructionMemoryComponent`: Instruction memory with a multi-output instruction bus. Has individual field ports (`get_inst_31_26()` through `get_inst_15_0()`) plus `inst_bus_origin()` (intentionally not prefixed with `get_` to avoid Manim attribute interception).
 
-### Wire/animation utilities (`utils.py`)
+### Wire/animation utilities (`single_cycle/utils.py`)
 
-Central module imported by all scenes. Key abstractions:
+Central module imported by all single-cycle scenes. Key abstractions:
 
 - **`make_ortho_wire(start, end, bend_x=, bend_ratio=)`** — Smart H→V→H orthogonal routing; use instead of raw `Line` for all datapath wires.
 - **`make_bus_split(origin, trunk_x, branches)`** — Fan-out bus: draws entry wire + vertical spine + labelled branches. Returns a dict with keys `entry`, `spine`, `branches`, `dots`, `labels`, `all`. Use `animate_bus(scene, bus)` to animate it.
@@ -56,9 +82,12 @@ Central module imported by all scenes. Key abstractions:
 
 ### Scenes
 
-- **`scenes/component_tests.py`** — One `TestXxxScene` per component for isolated visual testing. Imports components via `sys.path` manipulation pointing to the parent directory.
-- **`scenes/integration_scenes.py`** — `IfALUMuxScene`: Demonstrates a conditional branch using two ALUs and a MUX with full signal flow animation.
-- **`wiring_test.py`** — `DatapathTest`: Full wiring harness connecting InstructionMemory → MUX → RegFile using `make_bus_split` and `make_ortho_wire`. Serves as the reference for correct bus layout patterns.
+- **`single_cycle/scenes/component_tests.py`** — One `TestXxxScene` per component for isolated visual testing.
+- **`single_cycle/scenes/integration_scenes.py`** — `IfALUMuxScene`: Demonstrates a conditional branch using two ALUs and a MUX with full signal flow animation.
+- **`single_cycle/scenes/datapath_base.py`** — `DatapathBase`: Full single-cycle datapath wiring base class, inherited by trace scenes.
+- **`single_cycle/scenes/instruction_traces.py`** — Per-instruction trace scenes (TraceRType, TraceLW, TraceSW, TraceBeq).
+- **`pipeline/pipeline_datapath.py`** — `PipelinedDatapathScene`: 5-stage pipeline layout reusing single-cycle components.
+- **`pipeline/pipeline_performance.py`** — `PipelinePerformanceScene`: Pipeline timing diagram and performance analysis.
 
 ### Design conventions
 
