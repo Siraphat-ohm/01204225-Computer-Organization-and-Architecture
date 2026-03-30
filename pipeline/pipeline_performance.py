@@ -1,39 +1,20 @@
-"""
-Pipeline Performance Analysis — RISC-V 5-Stage Pipeline
-
-Covers:
-  1. Five pipeline stages and their individual latencies
-  2. Single-cycle vs. pipelined clock period
-  3. Pipeline timing diagram (Gantt chart with overlapping instructions)
-  4. Throughput & execution time formulas
-  5. Speedup calculation
-  6. Minimum clock rate / frequency
-  7. Real-world penalty: hazards & stalls
-  8. Summary comparison table
-
-Render:
-    manim -pql pipeline_performance.py PipelinePerformanceScene
-"""
-
 import numpy as np
 from manim import *
 
 config.frame_width  = 28.0
 config.frame_height = 15.75
 
-# ── Design constants ──────────────────────────────────────────────────────────
 STAGE_NAMES  = ["IF", "ID", "EX", "MEM", "WB"]
 STAGE_COLORS = [BLUE_C, PURPLE_C, GREEN_C, ORANGE, TEAL_C]
 
-# Realistic stage latencies (nanoseconds) — textbook-style values
-STAGE_NS = [250, 350, 150, 300, 200]          # IF  ID  EX  MEM  WB
-TOTAL_NS = sum(STAGE_NS)                       # 1250 ns  (single-cycle)
-MAX_NS   = max(STAGE_NS)                       # 350 ns   (pipelined clock)
-PIPE_REG_OVERHEAD = 20                          # register overhead in ns
-PIPE_CLK = MAX_NS + PIPE_REG_OVERHEAD           # 370 ns effective
+# Textbook-style stage latencies in nanoseconds
+STAGE_NS = [250, 350, 150, 300, 200]
+TOTAL_NS = sum(STAGE_NS)        # 1250 ns single-cycle clock period
+MAX_NS   = max(STAGE_NS)        # 350 ns  bottleneck stage
+PIPE_REG_OVERHEAD = 20          # pipeline register overhead in ns
+PIPE_CLK = MAX_NS + PIPE_REG_OVERHEAD   # 370 ns effective pipelined clock
 
 BG_DARK  = "#111111"
-
 
 class PipelinePerformanceScene(Scene):
     """Full performance analysis of a 5-stage RISC-V pipeline."""
@@ -52,10 +33,6 @@ class PipelinePerformanceScene(Scene):
         self._section_summary()
         self.wait(2)
 
-    # ══════════════════════════════════════════════════════════════════════════
-    # HELPERS
-    # ══════════════════════════════════════════════════════════════════════════
-
     def _clear(self, *mobs, fade=True):
         """Fade-out & remove a list of mobjects."""
         if fade and mobs:
@@ -73,10 +50,6 @@ class PipelinePerformanceScene(Scene):
         s.next_to(ref, DOWN, buff=0.15)
         return s
 
-    # ══════════════════════════════════════════════════════════════════════════
-    # 0.  TITLE
-    # ══════════════════════════════════════════════════════════════════════════
-
     def _section_title(self):
         title = Text(
             "Pipeline Performance Analysis",
@@ -92,10 +65,6 @@ class PipelinePerformanceScene(Scene):
         self.wait(1.2)
         self._clear(title, sub)
 
-    # ══════════════════════════════════════════════════════════════════════════
-    # 1.  FIVE STAGES + LATENCIES
-    # ══════════════════════════════════════════════════════════════════════════
-
     def _section_stage_latencies(self):
         hdr = self._header("① Stage Latencies")
         shdr = self._subheader(
@@ -104,8 +73,7 @@ class PipelinePerformanceScene(Scene):
         )
         self.play(Write(hdr), FadeIn(shdr), run_time=0.5)
 
-        # — build proportional bars —
-        max_w = 4.5                       # max bar width (for the slowest stage)
+        max_w = 4.5
         bar_h = 0.75
         start_y = 2.0
         gap = 1.15
@@ -146,7 +114,6 @@ class PipelinePerformanceScene(Scene):
             run_time=0.6,
         )
 
-        # — annotation: slowest stage highlight —
         slowest_idx = STAGE_NS.index(MAX_NS)
         star = Text(
             f"★ Slowest stage: {STAGE_NAMES[slowest_idx]} = {MAX_NS} ns  →  determines pipelined clock",
@@ -159,7 +126,6 @@ class PipelinePerformanceScene(Scene):
             run_time=0.5,
         )
 
-        # — total annotation —
         total_txt = Text(
             f"Total (all stages) = {TOTAL_NS} ns  →  single-cycle clock period",
             font_size=22, color=RED_B,
@@ -169,15 +135,12 @@ class PipelinePerformanceScene(Scene):
         self.wait(2.0)
         self._clear(hdr, shdr, bars, labels, ns_labels, star, total_txt)
 
-    # ══════════════════════════════════════════════════════════════════════════
     # 2.  SINGLE-CYCLE CLOCK PERIOD
-    # ══════════════════════════════════════════════════════════════════════════
 
     def _section_single_cycle_clock(self):
         hdr = self._header("② Single-Cycle Clock Period", color=RED_B)
         self.play(Write(hdr), run_time=0.4)
 
-        # — stacked stage blocks in a single long bar —
         bar_h = 1.0
         total_w = 18.0
         x_start = -total_w / 2
@@ -207,7 +170,6 @@ class PipelinePerformanceScene(Scene):
             run_time=0.8,
         )
 
-        # — brace showing total —
         full_bar = VGroup(*[b[0] for b in blocks])
         brace = Brace(full_bar, DOWN, color=RED_B)
         brace_lbl = brace.get_tex(
@@ -216,7 +178,6 @@ class PipelinePerformanceScene(Scene):
 
         self.play(GrowFromCenter(brace), Write(brace_lbl), run_time=0.6)
 
-        # — formula —
         formula = MathTex(
             r"T_{\text{clk,single}}",
             r"=",
@@ -232,7 +193,6 @@ class PipelinePerformanceScene(Scene):
 
         self.play(Write(formula), run_time=0.8)
 
-        # — execution time for N instructions —
         exec_eq = MathTex(
             r"T_{\text{exec}}",
             r"= N \times T_{\text{clk}}",
@@ -253,15 +213,12 @@ class PipelinePerformanceScene(Scene):
         self.wait(2.0)
         self._clear(hdr, blocks, brace, brace_lbl, formula, exec_eq, note)
 
-    # ══════════════════════════════════════════════════════════════════════════
     # 3.  PIPELINED CLOCK PERIOD
-    # ══════════════════════════════════════════════════════════════════════════
 
     def _section_pipelined_clock(self):
         hdr = self._header("③ Pipelined Clock Period", color=GREEN_B)
         self.play(Write(hdr), run_time=0.4)
 
-        # — equal-width stage blocks (clock = max stage) —
         bar_h = 1.0
         block_w = 3.2
         gap = 0.20
@@ -287,14 +244,12 @@ class PipelinePerformanceScene(Scene):
 
         self.play(FadeIn(blocks), run_time=0.5)
 
-        # — highlight max stage —
         slowest_idx = STAGE_NS.index(MAX_NS)
         self.play(
             blocks[slowest_idx][0].animate.set(stroke_width=4, stroke_color=YELLOW),
             run_time=0.4,
         )
 
-        # — formula —
         f1 = MathTex(
             r"T_{\text{clk,pipe}}",
             r"= \max(t_i)",
@@ -319,14 +274,12 @@ class PipelinePerformanceScene(Scene):
         self.play(Write(f1), run_time=0.6)
         self.play(Write(f2), run_time=0.6)
 
-        # — overhead note —
         overhead_note = Text(
             f"Pipeline register overhead:  {PIPE_REG_OVERHEAD} ns  (setup + propagation delay of flip-flops)",
             font_size=20, color=GRAY_B,
         ).next_to(f2, DOWN, buff=0.50)
         self.play(FadeIn(overhead_note), run_time=0.3)
 
-        # — key insight —
         insight = VGroup(
             Text("Key insight:", font_size=24, color=YELLOW, weight=BOLD),
             Text(
@@ -340,9 +293,7 @@ class PipelinePerformanceScene(Scene):
         self.wait(2.0)
         self._clear(hdr, blocks, f1, f2, overhead_note, insight)
 
-    # ══════════════════════════════════════════════════════════════════════════
     # 4.  PIPELINE TIMING DIAGRAM  (Gantt chart)
-    # ══════════════════════════════════════════════════════════════════════════
 
     def _section_timing_diagram(self):
         hdr = self._header("④ Pipeline Timing Diagram")
@@ -356,14 +307,12 @@ class PipelinePerformanceScene(Scene):
         x_origin = -8.5
         y_origin = 2.2
 
-        # — row labels (instructions) —
         row_labels = VGroup()
         for i in range(n_instr):
             lbl = Text(f"Instr {i+1}", font_size=18, color=WHITE)
             lbl.move_to([x_origin - 1.2, y_origin - i * cell_h, 0])
             row_labels.add(lbl)
 
-        # — column headers (clock cycles) —
         total_cols = n_instr + n_stages - 1   # 9 cycles
         col_headers = VGroup()
         for c in range(total_cols):
@@ -374,7 +323,6 @@ class PipelinePerformanceScene(Scene):
 
         self.play(FadeIn(row_labels), FadeIn(col_headers), run_time=0.4)
 
-        # — cells: instruction i occupies stages starting at column i —
         all_cells = VGroup()
         for i in range(n_instr):
             for s in range(n_stages):
@@ -401,7 +349,6 @@ class PipelinePerformanceScene(Scene):
                 run_time=0.55,
             )
 
-        # — annotations —
         last_row_y = y_origin - (n_instr - 1) * cell_h
         ss_start_col = n_stages - 1   # column 4 (CC5)
         ax_start = x_origin + ss_start_col * cell_w + cell_w / 2
@@ -431,15 +378,12 @@ class PipelinePerformanceScene(Scene):
         self.wait(2.5)
         self._clear(hdr, shdr, row_labels, col_headers, all_cells, arr, arr_lbl, fill_note)
 
-    # ══════════════════════════════════════════════════════════════════════════
     # 5.  THROUGHPUT & EXECUTION TIME
-    # ══════════════════════════════════════════════════════════════════════════
 
     def _section_throughput(self):
         hdr = self._header("⑤ Throughput & Execution Time")
         self.play(Write(hdr), run_time=0.4)
 
-        # — Execution-time formulas —
         sc_eq = MathTex(
             r"T_{\text{single}}",
             r"= N \times",
@@ -465,7 +409,6 @@ class PipelinePerformanceScene(Scene):
         self.play(Write(pipe_eq), run_time=0.5)
         self.play(FadeIn(k_note), run_time=0.3)
 
-        # — Concrete example: N = 1000 —
         N = 1000
         t_sc  = N * TOTAL_NS
         t_pip = (N + 4) * PIPE_CLK
@@ -500,15 +443,12 @@ class PipelinePerformanceScene(Scene):
         self._clear(hdr, sc_eq, pipe_eq, k_note,
                     example_hdr, sc_val, pip_val, speedup_txt)
 
-    # ══════════════════════════════════════════════════════════════════════════
     # 6.  SPEEDUP FORMULA
-    # ══════════════════════════════════════════════════════════════════════════
 
     def _section_speedup(self):
         hdr = self._header("⑥ Speedup", color=YELLOW)
         self.play(Write(hdr), run_time=0.4)
 
-        # — general formula —
         gen = MathTex(
             r"\text{Speedup}",
             r"= \frac{T_{\text{single}}}{T_{\text{pipe}}}",
@@ -520,7 +460,6 @@ class PipelinePerformanceScene(Scene):
 
         self.play(Write(gen), run_time=0.8)
 
-        # — limit as N → ∞ —
         limit = MathTex(
             r"\lim_{N \to \infty} \text{Speedup}",
             r"= \frac{T_{\text{clk,single}}}{T_{\text{clk,pipe}}}",
@@ -534,7 +473,6 @@ class PipelinePerformanceScene(Scene):
 
         self.play(Write(limit), run_time=0.7)
 
-        # — ideal speedup —
         ideal = MathTex(
             r"\text{Ideal (balanced stages, no overhead): Speedup} = k = 5",
             font_size=28, color=TEAL_C,
@@ -551,15 +489,12 @@ class PipelinePerformanceScene(Scene):
         self.wait(2.0)
         self._clear(hdr, gen, limit, ideal, actual)
 
-    # ══════════════════════════════════════════════════════════════════════════
     # 7.  MINIMUM CLOCK RATE / FREQUENCY
-    # ══════════════════════════════════════════════════════════════════════════
 
     def _section_min_clock_rate(self):
         hdr = self._header("⑦ Minimum Clock Rate", color=BLUE_B)
         self.play(Write(hdr), run_time=0.4)
 
-        # — Single-cycle —
         sc_title = Text("Single-Cycle", font_size=26, color=RED_B, weight=BOLD)
         sc_title.move_to([-6, 2.3, 0])
 
@@ -577,7 +512,6 @@ class PipelinePerformanceScene(Scene):
             font_size=30, color=RED_B,
         ).next_to(sc_f, DOWN, buff=0.20, aligned_edge=LEFT)
 
-        # — Pipelined —
         pipe_title = Text("Pipelined", font_size=26, color=GREEN_B, weight=BOLD)
         pipe_title.move_to([4, 2.3, 0])
 
@@ -604,7 +538,6 @@ class PipelinePerformanceScene(Scene):
         )
         self.play(Write(pipe_result), run_time=0.4)
 
-        # — comparison —
         comp = Text(
             f"Pipeline runs at {pipe_mhz:.0f} MHz vs {sc_mhz:.0f} MHz  "
             f"->  {pipe_mhz / sc_mhz:.1f}x higher clock rate",
@@ -612,7 +545,6 @@ class PipelinePerformanceScene(Scene):
         ).move_to([0, -1.6, 0])
         self.play(FadeIn(comp), run_time=0.4)
 
-        # — note about min clock rate meaning —
         meaning = Text(
             "\"Minimum clock rate\" = the slowest you can clock the processor\n"
             "and still execute one instruction per cycle (pipelined) or per period (single-cycle).",
@@ -624,9 +556,7 @@ class PipelinePerformanceScene(Scene):
         self._clear(hdr, sc_title, sc_f, sc_result,
                     pipe_title, pipe_f, pipe_result, comp, meaning)
 
-    # ══════════════════════════════════════════════════════════════════════════
     # 8.  HAZARDS & STALLS  (real-world penalty)
-    # ══════════════════════════════════════════════════════════════════════════
 
     def _section_hazards(self):
         hdr = self._header("⑧ Real-World: Hazards & Stalls", color=ORANGE)
@@ -673,7 +603,6 @@ class PipelinePerformanceScene(Scene):
             run_time=1.0,
         )
 
-        # — effective CPI formula —
         cpi_eq = MathTex(
             r"\text{CPI}_{\text{eff}}",
             r"= 1 + \text{stall cycles per instruction}",
@@ -700,9 +629,7 @@ class PipelinePerformanceScene(Scene):
         self.wait(2.5)
         self._clear(hdr, cards, cpi_eq, example, real_txt)
 
-    # ══════════════════════════════════════════════════════════════════════════
     # 9.  SUMMARY TABLE
-    # ══════════════════════════════════════════════════════════════════════════
 
     def _section_summary(self):
         hdr = self._header("⑨ Summary Comparison")
@@ -762,7 +689,6 @@ class PipelinePerformanceScene(Scene):
             run_time=1.2,
         )
 
-        # — bottom takeaway —
         takeaway = VGroup(
             Text("Takeaway:", font_size=24, color=YELLOW, weight=BOLD),
             Text(
