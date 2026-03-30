@@ -1,6 +1,5 @@
 import sys
 import os
-# Add parent directory to path so we can import components
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 from manim import *
@@ -128,8 +127,6 @@ class TestRegFileScene(Scene):
 from manim import *
 from InstructionMemory import InstructionMemoryComponent
 
-# manim -pql TestIM.py TestIMScene
-
 class TestIMScene(Scene):
     def construct(self):
         im = InstructionMemoryComponent(
@@ -143,14 +140,12 @@ class TestIMScene(Scene):
         kw  = dict(buff=0, stroke_width=2.5)
         lkw = dict(font_size=13)
 
-        # ── input ──────────────────────────────────────────────────────────
         addr = im.get_read_address()
         self.play(
             GrowArrow(Arrow(addr + LEFT * 1.2, addr, color=GRAY, **kw)),
             Write(Text("PC", **lkw).next_to(addr + LEFT * 1.2, LEFT, buff=0.08)),
         )
 
-        # ── outputs ────────────────────────────────────────────────────────
         ports = [
             (im.get_inst_6_0(),   "[6–0]   → Control",    GRAY),
             (im.get_inst_19_15(), "[19–15] → Reg 1 (rs1)",GRAY),

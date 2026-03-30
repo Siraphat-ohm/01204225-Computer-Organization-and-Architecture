@@ -32,7 +32,7 @@ class AndGateComponent(VGroup):
         w, h = self._w, self._h
 
         x_left = -w / 2
-        x_mid = 0  # where the arc starts
+        x_mid = 0
         y_top = h / 2
         y_bot = -h / 2
 
@@ -44,14 +44,11 @@ class AndGateComponent(VGroup):
         BL = np.array([x_left, y_bot, 0])
         TM = np.array([x_mid, y_top, 0])
         BM = np.array([x_mid, y_bot, 0])
-        R = np.array([x_mid + h / 2, 0, 0])  # rightmost point of arc
+        R = np.array([x_mid + h / 2, 0, 0])
 
-        # Flat left + top
         shape.set_points_as_corners([BL, TL, TM])
-        # Arc from TM to BM through R (semicircle)
         arc = ArcBetweenPoints(TM, BM, angle=-PI, color=self._color, stroke_width=2)
         shape.append_points(arc.get_points())
-        # Close back to BL
         shape.add_line_to(BL)
 
         return shape

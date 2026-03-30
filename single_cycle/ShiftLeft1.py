@@ -30,7 +30,6 @@ class ShiftLeft1Component(VGroup):
 
     def _build_shape(self) -> Polygon:
         w, h = self._w, self._h
-        # Trapezoid: narrow left, wider right (like sign-extend direction)
         TL = np.array([-w / 2,  h * 0.35, 0])
         TR = np.array([ w / 2,  h / 2,    0])
         BR = np.array([ w / 2, -h / 2,    0])

@@ -55,10 +55,10 @@ class ControlComponent(VGroup):
         return np.array([x, y, 0])
 
     def _signal_port(self, index: int) -> np.ndarray:
-        """Right-side port for the i-th control signal (0 = top)."""
+        """Right-side port for the i-th control signal (0 = top).
+        Signals are spread over 70% of the ellipse height."""
         n = len(self.SIGNALS)
         h = self.shape.get_height()
-        # Spread signals over 70% of the height
         span = h * 0.7
         top_y = self.get_center()[1] + span / 2
         step = span / (n - 1) if n > 1 else 0

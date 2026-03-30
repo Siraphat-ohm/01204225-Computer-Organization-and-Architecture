@@ -10,12 +10,7 @@ CTRL_COLOR     = "#4A90D9"
 DOT_RADIUS     = 0.07
 STROKE_WIDTH   = 2.5
 LABEL_FONT     = 18
-LABEL_OFFSET   = 0.16   # gap between wire and label text
-
-
-# ------------------------------------------------------------------------------
-# PRIMITIVE HELPERS
-# ------------------------------------------------------------------------------
+LABEL_OFFSET   = 0.16   
 
 def h(pt: np.ndarray, x: float) -> np.ndarray:
     """Same y/z as pt, move to x."""
@@ -65,10 +60,6 @@ def make_junction(pos, radius=DOT_RADIUS, color=WHITE) -> Dot:
     return Dot(pos, radius=radius, color=color)
 
 
-# ------------------------------------------------------------------------------
-# 1. ORTHOGONAL (MANHATTAN) WIRE — fixes staircase-bend problem
-# ------------------------------------------------------------------------------
-
 def make_ortho_wire(
     start: np.ndarray,
     end:   np.ndarray,
@@ -101,7 +92,6 @@ def make_ortho_wire(
     )
 
 
-# labelled version
 
 def _label_on_segment(
     seg_start: np.ndarray,
@@ -149,10 +139,6 @@ def make_wire_labelled(
         )
     return wire, lbl
 
-
-# ------------------------------------------------------------------------------
-# 2. BUS SPLITTER — fixes crowded/misplaced label problem
-# ------------------------------------------------------------------------------
 
 def make_bus_split(
     origin:       np.ndarray,
@@ -240,10 +226,6 @@ def animate_bus(
         scene.play(*pop, run_time=0.35)
 
 
-# ------------------------------------------------------------------------------
-# 3. ANIMATION HELPERS
-# ------------------------------------------------------------------------------
-
 def pulse_wire(scene, wire, color=SIGNAL_COLOR, run_time=0.4, restore=True):
     orig = wire.get_color()
     scene.play(wire.animate.set_color(color), run_time=run_time)
@@ -298,9 +280,6 @@ def signal_flow(scene, steps, default_run_time=0.45):
         scene.wait(pause)
 
 
-# ------------------------------------------------------------------------------
-# 4. V-H-V WIRE — for control lines dropping from above
-# ------------------------------------------------------------------------------
 
 def make_v_h_v_wire(
     start: np.ndarray,
@@ -340,10 +319,6 @@ def make_v_h_v_wire(
     )
 
 
-# ------------------------------------------------------------------------------
-# 5. FEEDBACK (U-TURN) WIRE — for writeback / PC loops
-# ------------------------------------------------------------------------------
-
 def make_feedback_wire(
     start: np.ndarray,
     end:   np.ndarray,
@@ -370,17 +345,14 @@ def make_feedback_wire(
     """
     return make_polyline(
         start,
-        v(start,      corridor_y),                # V down to corridor
-        np.array([turn_up_x, corridor_y, 0]),     # H along corridor
-        np.array([turn_up_x, end[1],     0]),     # V up to port height
-        end,                                      # H into port — horizontal entry ✓
+        v(start,      corridor_y),                
+        np.array([turn_up_x, corridor_y, 0]),     
+        np.array([turn_up_x, end[1],     0]),     
+        end,                                      
         color=color, stroke_width=stroke_width,
     )
 
 
-# ------------------------------------------------------------------------------
-# 6. DATAPATH ANIMATION MACRO
-# ------------------------------------------------------------------------------
 
 def animate_data_path(
     scene,
@@ -455,10 +427,6 @@ def animate_data_path(
             scene.wait(p)
 
 
-# ------------------------------------------------------------------------------
-# 7. PORT-TO-PORT CONNECTION — wire + arrow + label in one call
-# ------------------------------------------------------------------------------
-
 def make_connection(
     start: np.ndarray,
     end:   np.ndarray,
@@ -501,14 +469,12 @@ def make_connection(
     if label:
         lbl = Text(label, font_size=label_font, color=label_color or col)
 
-        # หา segment แนวนอนที่ยาวที่สุดใน polyline แล้ววาง label ตรงกลาง
         anchors = wire.get_anchors()
-        best_mid = wire.point_from_proportion(0.5)  # fallback
+        best_mid = wire.point_from_proportion(0.5) 
         best_len = -1
 
         for i in range(len(anchors) - 1):
             a, b = anchors[i], anchors[i + 1]
-            # เช็กว่าเป็น segment แนวนอน (y ต่างกันน้อยมาก)
             if abs(a[1] - b[1]) < 1e-2:
                 seg_len = abs(b[0] - a[0])
                 if seg_len > best_len:
@@ -557,10 +523,6 @@ def draw_connections(
         scene.play(*anims, run_time=run_time)
 
 
-# ------------------------------------------------------------------------------
-# 8. LEGACY / CONVENIENCE
-# ------------------------------------------------------------------------------
-
 def make_wire(start, end, color=WHITE, stroke_width=STROKE_WIDTH) -> VMobject:
     mid_x = (start[0] + end[0]) / 2
     return make_polyline(start, h(start, mid_x), v(end, mid_x), end,
@@ -599,49 +561,3 @@ def draw_stub(scene, port, text="", direction=LEFT,
         anims.append(Write(lbl))
     scene.play(*anims)
     return arrow
-
-
-def debug_wire_crossings(scene: Scene, connections: dict):
-    """
-    ฟังก์ชันผู้ช่วยสำหรับ Debug: จะวาดวงกลมสีแดงกะพริบตรงจุดที่สายไฟตัดกันแนวดิ่ง-แนวนอน
-    ช่วยให้เห็นว่าสายไหนทับกันบ้าง จะได้ปรับ bend_x, bend_y หลบได้ง่ายขึ้น
-    """
-    segments = []
-    
-    # 1. แตกสายไฟทั้งหมดออกเป็นเส้นตรงย่อยๆ
-    for conn in connections.values():
-        if "wire" in conn and conn["wire"] is not None:
-            # ดึงจุดมุมทั้งหมดของสายไฟ
-            anchors = conn["wire"].get_anchors()
-            for i in range(len(anchors) - 1):
-                segments.append((anchors[i], anchors[i+1]))
-                
-    cross_points = []
-    
-    # 2. เช็กจุดตัดของทุกเส้นคู่
-    for i in range(len(segments)):
-        for j in range(i + 1, len(segments)):
-            A, B = segments[i]
-            C, D = segments[j]
-            
-            # กรณีที่ 1: AB แนวนอน, CD แนวตั้ง
-            if abs(A[1] - B[1]) < 1e-3 and abs(C[0] - D[0]) < 1e-3:
-                # เช็กว่าแกน X ของเส้นแนวตั้ง ทะลุผ่านแกน X ของเส้นแนวนอนไหม
-                if (min(A[0], B[0]) + 1e-3 < C[0] < max(A[0], B[0]) - 1e-3) and \
-                   (min(C[1], D[1]) + 1e-3 < A[1] < max(C[1], D[1]) - 1e-3):
-                    cross_points.append(np.array([C[0], A[1], 0]))
-                    
-            # กรณีที่ 2: AB แนวตั้ง, CD แนวนอน
-            elif abs(A[0] - B[0]) < 1e-3 and abs(C[1] - D[1]) < 1e-3:
-                if (min(C[0], D[0]) + 1e-3 < A[0] < max(C[0], D[0]) - 1e-3) and \
-                   (min(A[1], B[1]) + 1e-3 < C[1] < max(A[1], B[1]) - 1e-3):
-                    cross_points.append(np.array([A[0], C[1], 0]))
-
-    # 3. วาดวงกลมสีแดงตรงจุดที่ตัดกัน
-    if cross_points:
-        print(f"⚠️ Debugger: พบสายไฟตัดกัน {len(cross_points)} จุด!")
-        for pt in cross_points:
-            circle = Circle(radius=0.15, color=RED, stroke_width=4).move_to(pt)
-            scene.add(circle)
-            # ทำให้กะพริบเพื่อสะดุดตา
-            scene.play(Indicate(circle, color=RED, scale_factor=1.5), run_time=0.3)

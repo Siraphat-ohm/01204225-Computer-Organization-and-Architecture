@@ -1,17 +1,3 @@
-"""
-Instruction-trace scenes for the RISC-V single-cycle datapath.
-
-Each scene inherits DatapathBase, builds the full static datapath, then
-animates the 5-stage pipeline (IF → ID → EX → MEM → WB) for one
-instruction type, highlighting only the active wires and components.
-
-Render commands (low quality / preview):
-    manim -pql scenes/instruction_traces.py TraceRType
-    manim -pql scenes/instruction_traces.py TraceLW
-    manim -pql scenes/instruction_traces.py TraceSW
-    manim -pql scenes/instruction_traces.py TraceBeq
-"""
-
 import os
 import sys
 
@@ -23,8 +9,6 @@ from scenes.datapath_base import DatapathBase
 
 
 from scenes.timing_data import CRITICAL_PATH_PS, INST_TIMINGS  # re-exported for back-compat
-
-# ── Shared control-signal tables ──────────────────────────────────────────────
 
 _CTRL_R = {
     "RegWrite": "1", "ALUSrc": "0", "ALUOp": "10",
@@ -51,16 +35,9 @@ _CTRL_BEQ = {
 _ACTIVE_BEQ = {"Branch", "ALUOp"}
 
 
-# ── Helper: bus branch wires by field ────────────────────────────────────────
-
 def _bus_wires_for(bus, *field_indices):
-    """Return bus branch wires at the given indices (0=opcode,1=rs1,…,4=imm)."""
     return [bus["branches"][i] for i in field_indices]
 
-
-# ─────────────────────────────────────────────────────────────────────────────
-# R-type: add x1, x2, x3
-# ─────────────────────────────────────────────────────────────────────────────
 
 class TraceRType(DatapathBase):
     """
@@ -86,11 +63,9 @@ class TraceRType(DatapathBase):
             "alu_wb", "wb_rf",
             "ctrl_regwrite",
         }
-        self.dim_inactive_wires(active_wire_keys)            # New Header Positioning: 
-            # Place it strictly between the Title and the Table
+        self.dim_inactive_wires(active_wire_keys)
         self.wait(0.3)
 
-        # ── IF: Instruction Fetch ──────────────────────────────────────────
         self.stage_banner("IF — Instruction Fetch")
         animate_data_path(self, [
             {"wire":      self.wires["pc_to_dot"]["wire"]},
@@ -98,7 +73,6 @@ class TraceRType(DatapathBase):
             {"component": self.im.shape, "label": "Fetch"},
         ])
 
-        # ── ID: Instruction Decode / Register Read ─────────────────────────
         self.stage_banner("ID — Decode / Register Read")
         animate_data_path(self, [
             {"wire": bus_w} for bus_w in _bus_wires_for(self.bus, 1, 2, 3)
@@ -107,7 +81,6 @@ class TraceRType(DatapathBase):
             {"ctrl": self.wires["ctrl_regwrite"]["wire"], "label": "RegWrite=1"},
         ])
 
-        # ── EX: Execute ───────────────────────────────────────────────────
         self.stage_banner("EX — Execute (ALU)")
         animate_data_path(self, [
             {"wire":      self.wires["rd1_alu"]["wire"],  "label": "rs1"},
@@ -119,11 +92,9 @@ class TraceRType(DatapathBase):
         ])
         self.alu.animate_operation(self, "ADD")
 
-        # ── MEM: skipped (MemRead=0, MemWrite=0) ──────────────────────────
         self.stage_banner("MEM — (not used)")
         self.wait(0.4)
 
-        # ── WB: Write Back ────────────────────────────────────────────────
         self.stage_banner("WB — Write Back")
         animate_data_path(self, [
             {"wire":      self.wires["alu_wb"]["wire"]},
@@ -136,10 +107,6 @@ class TraceRType(DatapathBase):
         self.play(FadeOut(banner), FadeOut(ctrl_table))
         self.wait(0.5)
 
-
-# ─────────────────────────────────────────────────────────────────────────────
-# I-type Load: lw x1, 0(x2)
-# ─────────────────────────────────────────────────────────────────────────────
 
 class TraceLW(DatapathBase):
     """
@@ -169,7 +136,6 @@ class TraceLW(DatapathBase):
         self.dim_inactive_wires(active_wire_keys)
         self.wait(0.3)
 
-        # ── IF ────────────────────────────────────────────────────────────
         self.stage_banner("IF — Instruction Fetch")
         animate_data_path(self, [
             {"wire":      self.wires["pc_to_dot"]["wire"]},
@@ -177,7 +143,6 @@ class TraceLW(DatapathBase):
             {"component": self.im.shape, "label": "Fetch"},
         ])
 
-        # ── ID ────────────────────────────────────────────────────────────
         self.stage_banner("ID — Decode / Register Read")
         animate_data_path(self, [
             {"wire": bus_w} for bus_w in _bus_wires_for(self.bus, 1, 3, 4)
@@ -186,7 +151,6 @@ class TraceLW(DatapathBase):
             {"component": self.se.shape, "label": "Sign-Extend"},
         ])
 
-        # ── EX ────────────────────────────────────────────────────────────
         self.stage_banner("EX — Execute (ALU)")
         animate_data_path(self, [
             {"wire":      self.wires["rd1_alu"]["wire"],   "label": "rs1 (base)"},
@@ -199,7 +163,6 @@ class TraceLW(DatapathBase):
         ])
         self.alu.animate_operation(self, "ADD")
 
-        # ── MEM ───────────────────────────────────────────────────────────
         self.stage_banner("MEM — Memory Read")
         animate_data_path(self, [
             {"wire":      self.wires["alu_dm"]["wire"],       "label": "address"},
@@ -208,7 +171,6 @@ class TraceLW(DatapathBase):
             {"wire":      self.wires["dm_wb"]["wire"],        "label": "read data"},
         ])
 
-        # ── WB ────────────────────────────────────────────────────────────
         self.stage_banner("WB — Write Back")
         animate_data_path(self, [
             {"ctrl":      self.wires["ctrl_memtoreg"]["wire"], "label": "MemtoReg=1"},
@@ -221,10 +183,6 @@ class TraceLW(DatapathBase):
         self.play(FadeOut(banner), FadeOut(ctrl_table))
         self.wait(0.5)
 
-
-# ─────────────────────────────────────────────────────────────────────────────
-# S-type Store: sw x2, 0(x1)
-# ─────────────────────────────────────────────────────────────────────────────
 
 class TraceSW(DatapathBase):
     """
@@ -252,7 +210,6 @@ class TraceSW(DatapathBase):
         self.dim_inactive_wires(active_wire_keys)
         self.wait(0.3)
 
-        # ── IF ────────────────────────────────────────────────────────────
         self.stage_banner("IF — Instruction Fetch")
         animate_data_path(self, [
             {"wire":      self.wires["pc_to_dot"]["wire"]},
@@ -260,7 +217,6 @@ class TraceSW(DatapathBase):
             {"component": self.im.shape, "label": "Fetch"},
         ])
 
-        # ── ID ────────────────────────────────────────────────────────────
         self.stage_banner("ID — Decode / Register Read")
         animate_data_path(self, [
             {"wire": bus_w} for bus_w in _bus_wires_for(self.bus, 1, 2, 4)
@@ -269,7 +225,6 @@ class TraceSW(DatapathBase):
             {"component": self.se.shape, "label": "Sign-Extend"},
         ])
 
-        # ── EX ────────────────────────────────────────────────────────────
         self.stage_banner("EX — Execute (ALU: compute address)")
         animate_data_path(self, [
             {"wire":      self.wires["rd1_alu"]["wire"],     "label": "rs1 (base)"},
@@ -282,7 +237,6 @@ class TraceSW(DatapathBase):
         ])
         self.alu.animate_operation(self, "ADD")
 
-        # ── MEM ───────────────────────────────────────────────────────────
         self.stage_banner("MEM — Memory Write")
         animate_data_path(self, [
             {"wire":      self.wires["alu_dm"]["wire"],        "label": "address"},
@@ -291,7 +245,6 @@ class TraceSW(DatapathBase):
             {"component": self.dm.shape, "label": "Store"},
         ])
 
-        # ── WB: not used (RegWrite=0) ─────────────────────────────────────
         self.stage_banner("WB — (not used)")
         self.wait(0.4)
 
@@ -300,10 +253,6 @@ class TraceSW(DatapathBase):
         self.play(FadeOut(banner), FadeOut(ctrl_table))
         self.wait(0.5)
 
-
-# ─────────────────────────────────────────────────────────────────────────────
-# B-type Branch: beq x1, x2, label
-# ─────────────────────────────────────────────────────────────────────────────
 
 class TraceBeq(DatapathBase):
     """
@@ -336,7 +285,6 @@ class TraceBeq(DatapathBase):
         self.dim_inactive_wires(active_wire_keys)
         self.wait(0.3)
 
-        # ── IF ────────────────────────────────────────────────────────────
         self.stage_banner("IF — Instruction Fetch")
         animate_data_path(self, [
             {"wire":      self.wires["pc_to_dot"]["wire"]},
@@ -344,7 +292,6 @@ class TraceBeq(DatapathBase):
             {"component": self.im.shape, "label": "Fetch"},
         ])
 
-        # ── ID ────────────────────────────────────────────────────────────
         self.stage_banner("ID — Decode / Register Read")
         animate_data_path(self, [
             {"wire": bus_w} for bus_w in _bus_wires_for(self.bus, 1, 2, 4)
@@ -353,7 +300,6 @@ class TraceBeq(DatapathBase):
             {"component": self.se.shape, "label": "Sign-Extend imm"},
         ])
 
-        # ── EX ────────────────────────────────────────────────────────────
         self.stage_banner("EX — Execute (ALU: subtract / compare)")
         animate_data_path(self, [
             {"wire":      self.wires["rd1_alu"]["wire"],  "label": "rs1"},
@@ -365,7 +311,6 @@ class TraceBeq(DatapathBase):
         ])
         self.alu.animate_operation(self, "SUB")
 
-        # ── Branch target address (runs in parallel with EX conceptually) ──
         self.stage_banner("EX — Branch Target Address")
         animate_data_path(self, [
             {"wire":      self.wires["se_sl"]["wire"],   "label": "imm"},
@@ -376,7 +321,6 @@ class TraceBeq(DatapathBase):
             {"wire":      self.wires["bra_pcsrc"]["wire"], "label": "branch target"},
         ])
 
-        # ── Branch logic ──────────────────────────────────────────────────
         self.stage_banner("Branch Logic — Zero & PCSrc")
         animate_data_path(self, [
             {"ctrl":      self.wires["zero_and"]["wire"],   "label": "Zero=1 (equal)"},
@@ -386,7 +330,6 @@ class TraceBeq(DatapathBase):
             {"component": self.pcsrc_mux.shape, "label": "Select branch"},
         ])
 
-        # ── WB / PC update ────────────────────────────────────────────────
         self.stage_banner("PC Update — Branch Taken")
         animate_data_path(self, [
             {"wire":      self.wires["pcsrc_pc"]["wire"], "label": "next PC"},
@@ -405,9 +348,7 @@ class DebugTrace(TraceRType):
     """
 
     def construct(self):
-        # monkey-patch ทุก animation ออก
         self.play = lambda *a, **kw: None
         self.wait = lambda *a, **kw: None
 
-        # เรียก construct ของ TraceRType ปกติ
         super().construct()

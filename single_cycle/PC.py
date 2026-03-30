@@ -32,8 +32,6 @@ class PCComponent(VGroup):
         lbl.move_to(self.shape.get_center())
         self.add(lbl)
 
-    # ── ports ──────────────────────────────────────────────────────────
-
     def get_input(self) -> np.ndarray:
         """Left — next PC value."""
         x = self.shape.get_left()[0] - self._offset

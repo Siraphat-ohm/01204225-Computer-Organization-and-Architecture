@@ -33,7 +33,6 @@ from utils import (
     make_v_h_v_wire,
 )
 
-# 16:9 wide frame for full single-cycle datapath
 config.frame_width  = 28.0
 config.frame_height = 15.75
 
@@ -52,7 +51,6 @@ class DatapathBase(Scene):
     """
 
     def setup_datapath(self) -> None:
-        # ── 1. Instantiate all components ────────────────────────────────────
         self.pc = PCComponent(width=1.0, height=2.0).move_to(LEFT * 12.0)
 
         self.im = InstructionMemoryComponent(
@@ -61,7 +59,6 @@ class DatapathBase(Scene):
             show_port_labels=False,
         ).move_to(LEFT * 10.0)
 
-        # Align PC output with IM read address
         self.pc.shift(
             UP * (self.im.get_read_address()[1] - self.pc.get_output()[1])
         )
@@ -116,7 +113,6 @@ class DatapathBase(Scene):
 
         self.pcsrc_mux = MuxComponent().move_to(RIGHT * 13.0 + UP * 5.5)
 
-        # ── 2. Centre all components ──────────────────────────────────────────
         everything = VGroup(
             self.pc, self.im, self.rf, self.se,
             self.alu_mux, self.alu, self.alu_control,
@@ -127,7 +123,6 @@ class DatapathBase(Scene):
         everything.move_to(ORIGIN*1.5)
         self.add(everything)
 
-        # ── 3. Cache port positions ───────────────────────────────────────────
         pc_in,  pc_out = self.pc.get_input(),  self.pc.get_output()
         im_ra          = self.im.get_read_address()
 
@@ -206,7 +201,6 @@ class DatapathBase(Scene):
             self.pcsrc_mux.get_ctrl_port_bottom(),
         )
 
-        # ── 4. Instruction bus ────────────────────────────────────────────────
         origin   = self.im.inst_bus_origin()
         trunk_x  = origin[0] + 0.6
         label_bx = self.rf.shape.get_left()[0] - 0.8
@@ -250,7 +244,6 @@ class DatapathBase(Scene):
             ],
         )
 
-        # ── 5. Corridor bands ─────────────────────────────────────────────────
         _top_roof = max(
             self.pc4_add.shape.get_top()[1],
             self.branch_add.shape.get_top()[1],
@@ -269,7 +262,6 @@ class DatapathBase(Scene):
         CC = [_sl1_bot  - 0.40 - i * 0.40 for i in range(7)]
         BC = [max(_bot_floor - 0.45 - i * 0.55, _frame_bot) for i in range(5)]
 
-        # ── 6. Junction dots ──────────────────────────────────────────────────
         self.dot_pc     = make_junction(pc_out + RIGHT * 0.5)
         self.dot_pc_top = make_junction(
             np.array([self.dot_pc.get_center()[0], p4a_in[1], 0])
@@ -281,14 +273,12 @@ class DatapathBase(Scene):
             np.array([self.dm.shape.get_left()[0] - 0.5, alu_out[1], 0])
         )
 
-        # ── 7. Wires ──────────────────────────────────────────────────────────
         def ctrl_route(corridor_y):
             return lambda s, e, **kw: make_v_h_v_wire(s, e, bend_y=corridor_y, **kw)
 
         self.wires = {
-            # PC / PC+4 / Branch Adder inputs
             "pc_to_dot": make_connection(pc_out, self.dot_pc.get_center(), arrow=False),
-            "junc_im":   make_connection(self.dot_pc.get_center(), im_ra, label="PC"),
+            "junc_im": make_connection(self.dot_pc.get_center(), im_ra, label="PC"),
             "pc_p4a": make_connection(
                 self.dot_pc.get_center(), p4a_in,
                 wire_func=make_ortho_wire,
@@ -306,7 +296,6 @@ class DatapathBase(Scene):
                 corridor_y=TC[0],
                 turn_up_x=bra_ina[0] - 0.5,
             ),
-            # PC adders → PCSrc Mux
             "p4_pcsrc": make_connection(
                 p4_out, ps_in0,
                 wire_func=make_feedback_wire,
@@ -319,14 +308,12 @@ class DatapathBase(Scene):
                 wire_func=make_ortho_wire,
                 bend_x=bra_out[0] + 0.5,
             ),
-            # Feedback: PCSrc Mux → PC
             "pcsrc_pc": make_connection(
                 ps_out, pc_in,
                 wire_func=make_feedback_wire,
                 corridor_y=TC[2],
                 turn_up_x=pc_in[0] - 0.6,
             ),
-            # Sign-extend → Shift Left 1 → Branch Adder
             "se_sl": make_connection(
                 self.dot_se.get_center(), sl_in,
                 arrow=True,
@@ -339,7 +326,6 @@ class DatapathBase(Scene):
                 wire_func=make_ortho_wire,
                 bend_x=sl_out[0],
             ),
-            # Control signals
             "ctrl_branch": make_connection(
                 ctrl_branch, ag_ina,
                 ctrl=True,
@@ -398,7 +384,6 @@ class DatapathBase(Scene):
                 tip_dir=LEFT,
                 label_side=UP,
             ),
-            # Branch logic
             "zero_and": make_connection(
                 alu_zero, ag_inb,
                 ctrl=True,
@@ -416,7 +401,6 @@ class DatapathBase(Scene):
                 bend_y=CC[0] - 0.25,
                 tip_dir=UP,
             ),
-            # Data path
             "rd1_alu":   make_connection(rd1, alu_a, label="Read data 1"),
             "rd2_am0":   make_connection(rd2, am0, label="Read data 2"),
             "se_am1":    make_connection(
@@ -463,7 +447,6 @@ class DatapathBase(Scene):
             ),
         }
 
-        # ── 8. Add wires and dots to scene ────────────────────────────────────
         self.add(*self.bus["all"])
         for conn in self.wires.values():
             self.add(conn["all"])
@@ -472,10 +455,7 @@ class DatapathBase(Scene):
             self.dot_rd2, self.dot_alu, self.dot_se,
         )
 
-    # ── Shared animation helpers ──────────────────────────────────────────────
-
     def show_instruction_banner(self, text: str, subtitle: str = "") -> VGroup:
-        """Show an instruction label at the top of the screen."""
         title = Text(text, font_size=20, color=YELLOW, weight=BOLD)
         title.to_edge(UP, buff=0.18)
         group = VGroup(title)

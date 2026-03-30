@@ -8,16 +8,14 @@ sys.path.insert(0, os.path.abspath(os.path.dirname(__file__)))
 from manim import *
 from scenes.timing_data import CRITICAL_PATH_PS, INST_TIMINGS
 
-# ── Stage metadata ─────────────────────────────────────────────────────────────
 STAGE_KEYS   = ["if", "id", "ex", "mem", "wb"]
 STAGE_LABELS = ["IF", "ID", "EX", "MEM", "WB"]
 STAGE_COLS   = [BLUE_C, PURPLE_C, GREEN_C, ORANGE, TEAL_C]
 
-# ── Timing-diagram layout constants (left panel) ───────────────────────────────
-BAR_ORIGIN_X = -5.1    # x position of t = 0
-PS_SCALE     = 0.0055  # Manim units per picosecond  (800 ps → 4.4 units)
+BAR_ORIGIN_X = -5.1    
+PS_SCALE     = 0.0055  
 ROW_H        = 0.50
-ROW_GAP      = 0.92   # increased row spacing
+ROW_GAP      = 0.92
 TOP_ROW_Y    = 2.30
 
 SHORT_NAMES = ["R-type", "lw  (Load)", "sw  (Store)", "beq  (Branch)", "jal  (Jump)"]
@@ -32,17 +30,13 @@ class PerformanceScene(Scene):
         self.wait(3)
         self.play(FadeOut(Group(*self.mobjects)))
 
-    # ─── LEFT: instruction timing diagram ─────────────────────────────────────
-
     def _left_panel(self):
-        # Title
         title = (
             Text("Instruction Timing Diagram", font_size=21, color=YELLOW, weight=BOLD)
             .move_to(np.array([-3.3, 3.72, 0]))
         )
         self.play(Write(title))
 
-        # Stage colour legend
         legend = VGroup(*[
             VGroup(
                 Rectangle(width=0.32, height=0.20,
@@ -54,8 +48,7 @@ class PerformanceScene(Scene):
         self.play(FadeIn(legend))
         self.wait(0.2)
 
-        # ── Instruction rows ──────────────────────────────────────────────────
-        row_bar_groups = []   # store bars VGroup per row for later highlight
+        row_bar_groups = []
         for i, (inst, short) in enumerate(zip(INST_TIMINGS, SHORT_NAMES)):
             y = TOP_ROW_Y - i * ROW_GAP
 
@@ -98,7 +91,6 @@ class PerformanceScene(Scene):
             )
             row_bar_groups.append(bars_vg)
 
-        # ── Time axis ─────────────────────────────────────────────────────────
         axis_y = TOP_ROW_Y - len(INST_TIMINGS) * ROW_GAP + 0.10
         max_t  = 900
         axis   = Line(
@@ -121,7 +113,6 @@ class PerformanceScene(Scene):
         axis_unit = Text("ps", font_size=12, color=GRAY_B).next_to(axis, RIGHT, buff=0.08)
         self.play(Create(axis), FadeIn(ticks), Write(axis_unit), run_time=0.5)
 
-        # ── Clock waveform ────────────────────────────────────────────────────
         clk_y  = axis_y - 0.65
         cp_w   = CRITICAL_PATH_PS * PS_SCALE
         h      = 0.17
@@ -156,7 +147,6 @@ class PerformanceScene(Scene):
             run_time=0.6,
         )
 
-        # ── Highlight critical-path row ───────────────────────────────────────
         self.wait(0.3)
         crit_i    = next(i for i, t in enumerate(INST_TIMINGS) if t["total"] == CRITICAL_PATH_PS)
         crit_rect = SurroundingRectangle(
@@ -169,21 +159,17 @@ class PerformanceScene(Scene):
         self.play(Create(crit_rect), Write(crit_note), run_time=0.4)
         self.play(Indicate(crit_rect, scale_factor=1.04, color=RED), run_time=0.8)
 
-    # ─── RIGHT: performance calculations ──────────────────────────────────────
-
     def _right_panel(self):
         f_ghz = round(1e12 / CRITICAL_PATH_PS / 1e9, 2)
 
         right_x = 3.4   # x-anchor for the right panel content
 
-        # ── Title ─────────────────────────────────────────────────────────────
         title = (
             Text("Performance Analysis", font_size=21, color=YELLOW, weight=BOLD)
             .move_to(np.array([right_x, 3.72, 0]))
         )
         self.play(Write(title))
         cursor_y = 3.72
-
         def _section_head(text, color, y):
             return Text(text, font_size=16, color=color, weight=BOLD).move_to(
                 np.array([right_x, y, 0])
@@ -194,7 +180,6 @@ class PerformanceScene(Scene):
                 np.array([right_x, y, 0])
             )
 
-        # ── 1. CPI ────────────────────────────────────────────────────────────
         cursor_y -= 0.65
         h1 = _section_head("① Cycles Per Instruction (CPI)", BLUE_B, cursor_y)
         self.play(FadeIn(h1, shift=UP * 0.08))
@@ -212,7 +197,6 @@ class PerformanceScene(Scene):
         self.play(FadeIn(note_cpi))
         self.wait(0.4)
 
-        # ── separator ─────────────────────────────────────────────────────────
         cursor_y -= 0.62
         sep1 = Line(
             np.array([right_x - 2.8, cursor_y, 0]),
@@ -221,7 +205,6 @@ class PerformanceScene(Scene):
         )
         self.play(Create(sep1), run_time=0.3)
 
-        # ── 2. Critical path ──────────────────────────────────────────────────
         cursor_y -= 0.55
         h2 = _section_head("② Critical Path", ORANGE, cursor_y)
         self.play(FadeIn(h2, shift=UP * 0.08))
@@ -238,7 +221,6 @@ class PerformanceScene(Scene):
         self.play(Write(eq_cp2))
         self.wait(0.4)
 
-        # ── separator ─────────────────────────────────────────────────────────
         cursor_y -= 0.62
         sep2 = Line(
             np.array([right_x - 2.8, cursor_y, 0]),
@@ -247,7 +229,6 @@ class PerformanceScene(Scene):
         )
         self.play(Create(sep2), run_time=0.3)
 
-        # ── 3. Minimum clock rate ─────────────────────────────────────────────
         cursor_y -= 0.55
         h3 = _section_head("③ Minimum Clock Rate", GREEN_B, cursor_y)
         self.play(FadeIn(h3, shift=UP * 0.08))

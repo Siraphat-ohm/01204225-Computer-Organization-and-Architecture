@@ -62,7 +62,6 @@ class AdderComponent(VGroup):
     def get_input_a(self) -> np.ndarray:
         """Left-top input."""
         v = self._verts()
-        # Midpoint of top-left quadrant of left edge
         mid_y = (v[0][1] + self.get_center()[1]) / 2
         return np.array(
             [
@@ -75,7 +74,6 @@ class AdderComponent(VGroup):
     def get_input_b(self) -> np.ndarray:
         """Left-bottom input."""
         v = self._verts()
-        # Midpoint of bottom-left quadrant of left edge
         mid_y = (v[4][1] + self.get_center()[1]) / 2
         return np.array(
             [
