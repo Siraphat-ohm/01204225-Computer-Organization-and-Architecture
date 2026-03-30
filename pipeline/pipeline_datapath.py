@@ -1,22 +1,10 @@
-"""
-Pipelined RISC-V datapath scene.
-
-Reuses the same component classes as the single-cycle datapath but arranges
-them into 5 labelled pipeline stages separated by pipeline-register bars.
-Wiring is deliberately simplified — one representative wire per inter-stage
-data path — to keep the diagram readable.
-
-Render (low quality):
-    manim -pql scenes/pipeline_datapath.py PipelinedDatapathScene
-"""
-
 import os
 import sys
 
 import numpy as np
 from manim import *
 
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "single_cycle")))
 
 from ALU import ALUComponent
 from DataMemory import DataMemoryComponent
@@ -26,11 +14,9 @@ from PC import PCComponent
 from RegFile import RegFileComponent
 from utils import CTRL_COLOR, SIGNAL_COLOR
 
-# Same wide frame as the single-cycle datapath
 config.frame_width  = 28.0
 config.frame_height = 15.75
 
-# ── Stage layout constants ────────────────────────────────────────────────────
 STAGE_NAMES   = ["IF",   "ID",     "EX",    "MEM",   "WB"]
 STAGE_COLORS  = [BLUE_C, PURPLE_C, GREEN_C, ORANGE,  TEAL_C]
 STAGE_X       = [-10.4,  -5.2,     0.0,     5.2,     10.4]
@@ -96,8 +82,6 @@ class PipelinedDatapathScene(Scene):
         self._show_throughput_note()
         self.wait(2)
 
-    # ── Stage backgrounds + labels ────────────────────────────────────────────
-
     def _draw_stages(self):
         self.stage_bg = []
         lbls = VGroup()
@@ -116,8 +100,6 @@ class PipelinedDatapathScene(Scene):
         self.add(*self.stage_bg)
         self.play(FadeIn(lbls), run_time=0.4)
 
-    # ── Pipeline register bars ────────────────────────────────────────────────
-
     def _draw_pipeline_regs(self):
         self.pipe_reg_groups = []
         bar_h = STAGE_H * 0.72
@@ -132,10 +114,7 @@ class PipelinedDatapathScene(Scene):
             self.pipe_reg_groups.append(g)
         self.play(*[FadeIn(g) for g in self.pipe_reg_groups], run_time=0.4)
 
-    # ── Components ────────────────────────────────────────────────────────────
-
     def _place_components(self):
-        # IF — Instruction Memory (+ PC to its left)
         self.im = InstructionMemoryComponent(
             width=1.8, height=2.8, show_port_labels=False,
         ).move_to([STAGE_X[0] + 0.35, CENTER_Y, 0])
@@ -143,12 +122,10 @@ class PipelinedDatapathScene(Scene):
             [STAGE_X[0] - 1.5, self.im.get_read_address()[1], 0]
         )
 
-        # ID — Register File
         self.rf = RegFileComponent(width=2.4, height=3.4).move_to(
             [STAGE_X[1], CENTER_Y, 0]
         )
 
-        # EX — ALUSrc MUX + ALU
         self.alu = ALUComponent(label="ALU").scale(0.72).move_to(
             [STAGE_X[2] + 0.7, CENTER_Y, 0]
         )
@@ -159,12 +136,10 @@ class PipelinedDatapathScene(Scene):
             UP * (self.alu.get_input_b()[1] - self.alu_mux.get_output()[1])
         )
 
-        # MEM — Data Memory
         self.dm = DataMemoryComponent(width=2.0, height=2.8).move_to(
             [STAGE_X[3], CENTER_Y, 0]
         )
 
-        # WB — Writeback MUX
         self.wb_mux = MuxComponent(label="WB").scale(0.78).move_to(
             [STAGE_X[4], CENTER_Y, 0]
         )
@@ -179,23 +154,18 @@ class PipelinedDatapathScene(Scene):
         )
         self.play(FadeIn(comps), run_time=0.7)
 
-    # ── Wires ─────────────────────────────────────────────────────────────────
-
     def _draw_wires(self):
         S = SIGNAL_COLOR
         wires = VGroup()
 
-        # --- Within IF: PC → IM read address ---
         wires.add(_harrow(self.pc.get_output(), self.im.get_read_address()))
 
-        # --- IF → ID: instruction bus (at RF centre level) ---
         wires.add(_harrow(
             [self.im.shape.get_right()[0], self.rf.shape.get_center()[1], 0],
             [self.rf.shape.get_left()[0],  self.rf.shape.get_center()[1], 0],
             label="Instruction",
         ))
 
-        # --- ID → EX: read data 1 → ALU input_a ---
         rd1 = self.rf.get_read_data1()
         ala = self.alu.get_input_a()
         wires.add(_lshape(rd1, ala, color=S))
@@ -204,7 +174,6 @@ class PipelinedDatapathScene(Scene):
         )
         wires.add(lbl_rs1)
 
-        # --- ID → EX: read data 2 → ALU MUX input 0 ---
         rd2  = self.rf.get_read_data2()
         am0  = self.alu_mux.get_input_0()
         wires.add(_lshape(rd2, am0, color=S))
@@ -213,15 +182,13 @@ class PipelinedDatapathScene(Scene):
         )
         wires.add(lbl_rs2)
 
-        # --- Within EX: MUX output → ALU input_b ---
         wires.add(_harrow(self.alu_mux.get_output(), self.alu.get_input_b()))
 
-        # --- EX → MEM: ALU result → DM address ---
         wires.add(_harrow(
             self.alu.get_output(), self.dm.get_address(), label="ALU result",
         ))
 
-        # --- EX → MEM: read data 2 → DM write data (routed below components) ---
+        # rs2 bypass routed below components to DM write data
         dm_wd  = self.dm.get_write_data()
         bot_y  = min(self.alu_mux.shape.get_bottom()[1], self.dm.shape.get_bottom()[1]) - 0.7
         bypass = VMobject(color=S, stroke_width=1.6)
@@ -238,12 +205,11 @@ class PipelinedDatapathScene(Scene):
             )
         )
 
-        # --- MEM → WB: DM read data → WB MUX input 1 ---
         wires.add(_harrow(
             self.dm.get_read_data(), self.wb_mux.get_input_1(), label="read data",
         ))
 
-        # --- EX → WB: ALU result bypass → WB MUX input 0 (routed below MEM) ---
+        # ALU result bypass routed below MEM to WB MUX input 0
         alu_pt = np.array([self.alu.get_output()[0] + 0.15, self.alu.get_output()[1], 0])
         wb0    = self.wb_mux.get_input_0()
         lo_y   = min(self.dm.shape.get_bottom()[1], bot_y) - 0.4
@@ -261,7 +227,7 @@ class PipelinedDatapathScene(Scene):
             )
         )
 
-        # --- WB → RF: writeback (dashed, above pipeline) ---
+        # WB → RF writeback routed above all stages (dashed)
         wb_out = self.wb_mux.get_output()
         rf_wd  = self.rf.get_write_data()
         top_y  = max(
@@ -285,8 +251,6 @@ class PipelinedDatapathScene(Scene):
 
         self.play(Create(wires), run_time=1.2)
         self.wires_group = wires
-
-    # ── Pipeline-register explanation ─────────────────────────────────────────
 
     def _explain_pipeline_regs(self):
         stage_bottom_y = CENTER_Y - STAGE_H / 2
@@ -317,8 +281,6 @@ class PipelinedDatapathScene(Scene):
         self.wait(1.4)
         self.play(FadeOut(explanation), FadeOut(ptr), run_time=0.4)
 
-    # ── Throughput note ───────────────────────────────────────────────────────
-
     def _show_throughput_note(self):
         lines = [
             ("Single-cycle:", "1 instr / N-unit clock period  →  low throughput",  RED_B),
@@ -340,8 +302,6 @@ class PipelinedDatapathScene(Scene):
         self.play(FadeIn(grp), run_time=0.5)
         self.wait(2.2)
         self.play(FadeOut(grp), run_time=0.4)
-
-    # ── Instruction animation ─────────────────────────────────────────────────
 
     def _animate_instruction(self):
         """Highlight each pipeline stage in turn for an ADD instruction."""
