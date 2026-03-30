@@ -1,41 +1,47 @@
-# Special Homework: Explain about Comp Arch 
+# Special Homework: Explain about Comp Arch
 
 นายสิรภัทร ทัพภะ 6710504409
 
-## Available Scenes
+## Setup
 
-| Group | Scenes |
-| --- | --- |
-| Single-cycle traces | TraceRType TraceLW TraceSW TraceBeq |
-| Single-cycle | PerformanceScene DatapathBase |
-| Pipeline | PipelinedDatapathScene PipelinePerformanceScene |
-| Cache addressing | CacheParamsScene CacheTracingScene |
-| Cache associativity | LRUScene TwoWayTracingScene FourWayTracingScene ComparisonScene |
-
-
-## How to install dependencies
-
-Via `uv`
-
+Via `uv`:
 ```bash
-    uv sync
-```
-or via `pip`
-
-```bash
-    pip install -r requirements.txt
+uv sync
 ```
 
+Via `pip`:
+```bash
+pip install -r requirements.txt
+```
 
-## How to render a scene
-To render a scene, run the following command in the terminal:
-
-Quality options:
-- `-p` : preview (opens the video after rendering)
-- `-ql`: low quality (faster rendering)
-- `-qm`: medium quality
-- `-qh`: high quality (slower rendering)
+## Rendering
 
 ```bash
-manim -<options> main.py <SceneName>
+python main.py [flags] <SceneName>
 ```
+
+Quality flags:
+| Flag | Quality |
+|------|---------|
+| `-pql` | low (fast preview) |
+| `-pqm` | medium |
+| `-pqh` | high |
+| `-pqk` | 4K |
+
+Run without arguments to list all scenes:
+
+```bash
+python main.py
+```
+
+## Scenes
+
+| Group | Scene |
+|-------|-------|
+| Single-cycle components | `TestALUScene` `TestMuxScene` `TestRegFileScene` `TestIMScene` `TestSignExtendScene` |
+| Single-cycle integration | `IfALUMuxScene` |
+| Single-cycle traces | `TraceRType` `TraceLW` `TraceSW` `TraceBeq` `DebugTrace` |
+| Single-cycle performance | `PerformanceScene` |
+| Pipeline | `PipelinedDatapathScene` `PipelinePerformanceScene` |
+| Cache addressing | `CacheParamsScene` `CacheTracingScene` |
+| Cache associativity | `LRUScene` `TwoWayTracingScene` `FourWayTracingScene` `ComparisonScene` |
